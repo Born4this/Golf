@@ -17,22 +17,23 @@ export default function Draft() {
   const [loading, setLoading] = useState(false);
   const [joining, setJoining] = useState(false);
 
-  const token  = typeof window !== 'undefined' && localStorage.getItem('token');
+  const token = typeof window !== 'undefined' && localStorage.getItem('token');
   const userId = typeof window !== 'undefined' && localStorage.getItem('userId');
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
   const leagueReady = leagueDetails?.members?.length >= leagueDetails?.teamCount;
 
-  const userMap = useMemo(() => (
-    (leagueDetails?.members || []).reduce((map, u) => {
+  // Map user IDs to usernames
+  const userMap = useMemo(() => {
+    return (leagueDetails?.members || []).reduce((map, u) => {
       const id = u._id?.toString() || u.toString();
       map[id] = u.username;
       return map;
-    }, {})
-  ), [leagueDetails]);
+    }, {});
+  }, [leagueDetails]);
 
+  // Next picks window
   const upcoming = useMemo(() => {
     if (!order.length || !leagueDetails) return [];
     const start = picks.length;
@@ -40,16 +41,19 @@ export default function Draft() {
     return order.slice(start, start + count);
   }, [order, picks, leagueDetails]);
 
+  // Available golfers
   const available = useMemo(() => {
     const picked = new Set(picks.map(p => p.golfer));
     return field.filter(g => !picked.has(g.id));
   }, [field, picks]);
 
+  // Search filter
   const filtered = useMemo(() => {
     if (!searchTerm) return available;
     return available.filter(g => g.name.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [available, searchTerm]);
 
+  // Copy invite link
   const copyLink = () => {
     const inviteUrl = `${window.location.origin}/auth?redirect=${encodeURIComponent(`/draft?leagueId=${leagueId}`)}`;
     navigator.clipboard.writeText(inviteUrl)
@@ -57,6 +61,7 @@ export default function Draft() {
       .catch(() => alert('Failed to copy link'));
   };
 
+  // Data fetchers
   const fetchLeague = async () => {
     try {
       const res = await fetch(`${apiUrl}/api/leagues/${leagueId}`, { headers });
@@ -85,26 +90,37 @@ export default function Draft() {
     } catch {}
   };
 
+  // Auto-join if coming via invite
   useEffect(() => {
-    if (!leagueId) return;
-    fetchLeague(); fetchDraft(); fetchField();
-    const iv = setInterval(fetchDraft, 10000);
-    return () => clearInterval(iv);
-  }, [leagueId]);
-
-  useEffect(() => {
-    if (leagueDetails?.members && userId && !joining && !leagueDetails.members.some(m => (m._1||m).toString() === userId)) {
+    const { redirect } = router.query;
+    if (
+      leagueDetails?.members &&
+      userId &&
+      !joining &&
+      redirect &&
+      !leagueDetails.members.some(m => (m._id || m).toString() === userId)
+    ) {
       setJoining(true);
-      fetch(`${apiUrl}/api/leagues/join`, { method:'POST', headers, body: JSON.stringify({ leagueId }) })
-        .then(r => r.json()).then(d => { if (d.league) { fetchLeague(); fetchDraft(); } else setError(d.msg); })
+      fetch(`${apiUrl}/api/leagues/join`, {
+        method: 'POST', headers, body: JSON.stringify({ leagueId })
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.league) {
+            fetchLeague(); fetchDraft();
+          }
+        })
         .finally(() => setJoining(false));
     }
-  }, [leagueDetails]);
+  }, [leagueDetails, router.query]);
 
+  // Make a pick
   const makePick = async (golferId, golferName) => {
     setLoading(true); setError('');
     try {
-      const res = await fetch(`${apiUrl}/api/leagues/${leagueId}/picks`, { method:'POST', headers, body: JSON.stringify({ golferId, golferName }) });
+      const res = await fetch(`${apiUrl}/api/leagues/${leagueId}/picks`, {
+        method:'POST', headers, body: JSON.stringify({ golferId, golferName })
+      });
       const data = await res.json(); if (!res.ok) throw new Error(data.msg);
       setPicks(data.picks); setOrder(data.draftOrder);
     } catch (err) { setError(err.message); }
@@ -112,6 +128,14 @@ export default function Draft() {
   };
 
   const isComplete = picks.length >= order.length;
+
+  // Initial data load
+  useEffect(() => {
+    if (!leagueId) return;
+    fetchLeague(); fetchDraft(); fetchField();
+    const iv = setInterval(fetchDraft, 10000);
+    return () => clearInterval(iv);
+  }, [leagueId]);
 
   return (
     <Layout>
@@ -147,7 +171,9 @@ export default function Draft() {
                     className={`min-w-[6rem] text-center py-2 px-3 rounded-lg font-medium ${
                       idx === 0 ? 'bg-green-200' : 'bg-gray-100'
                     }`}
-                  >{userMap[uid] || uid}</li>
+                  >
+                    {userMap[uid] || uid}
+                  </li>
                 ))}
               </ul>
             </section>
@@ -161,30 +187,57 @@ export default function Draft() {
                 className="w-full max-w-md px-4 py-3 rounded-full shadow-inner placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
               />
             </section>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filtered.map(g => (
+                <div
+                  key={g.id}
+                  className="flex justify-between items-center bg-white shadow rounded-lg py-3 px-4"
+                >
+                  <span className="font-medium text-gray-800">{g.name}</span>
+                  <button
+                    onClick={() => makePick(g.id, g.name)}
+                    disabled={!leagueReady || !isMyTurn || loading}
+                    className={`py-1 px-3 rounded-full text-sm font-semibold transition ${
+                      leagueReady && isMyTurn
+                        ? 'bg-indigo-500 hover:bg-indigo-600 text-white'
+                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    {loading ? '…' : 'Pick'}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Your Picks Section */}
+            <section className="mt-8">
+              <h2 className="text-xl font-semibold mb-2">Your Picks</h2>
+              <ul className="space-y-2">
+                {picks.map((p, idx) => (
+                  <li
+                    key={idx}
+                    className="bg-white border-l-4 border-indigo-500 p-3 shadow-sm rounded"
+                  >
+                    <div className="text-sm font-semibold">
+                      Round {p.round}, Pick {p.pickNo}
+                    </div>
+                    <div className="text-gray-700">
+                      {p.golferName} — by {userMap[p.user] || p.user}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <button
+              onClick={() => router.push(`/team?leagueId=${leagueId}`)}
+              className="mt-8 w-full max-w-xs mx-auto block bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-full font-semibold transition"
+            >
+              View My Team
+            </button>
           </>
         )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(g => (
-            <div key={g.id} className="flex justify-between items-center bg-white shadow rounded-lg py-3 px-4">
-              <span className="font-medium text-gray-800">{g.name}</span>
-              <button
-                onClick={() => makePick(g.id, g.name)}
-                disabled={!leagueReady || !isMyTurn || loading}
-                className={`py-1 px-3 rounded-full text-sm font-semibold transition ${
-                  leagueReady && isMyTurn
-                    ? 'bg-indigo-500 hover:bg-indigo-600 text-white'
-                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                }`}
-              >{loading ? '…' : 'Pick'}</button>
-            </div>
-          ))}
-        </div>
-
-        <button
-          onClick={() => router.push(`/team?leagueId=${leagueId}`)}
-          className="mt-8 w-full max-w-xs mx-auto block bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-full font-semibold transition"
-        >View My Team</button>
       </main>
     </Layout>
   );
