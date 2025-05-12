@@ -9,7 +9,15 @@ const __dirname  = path.dirname(__filename);
 const envPath    = path.resolve(__dirname, '.env');
 console.log('→ loading env from', envPath);
 dotenv.config({ path: envPath });
-console.log('→ JWT_SECRET is', process.env.JWT_SECRET ? '[SET]' : '[NOT SET]');
+// backend/server.js
+import dotenv from 'dotenv';
+dotenv.config();
+
+console.log('=== ENV DUMP ===');
+console.log('FRONTEND_URL =', process.env.FRONTEND_URL);
+console.log('MONGO_URI    =', process.env.MONGO_URI ? '✅ loaded' : '❌ missing');
+console.log('JWT_SECRET   =', process.env.JWT_SECRET ? '✅ loaded' : '❌ missing');
+console.log('================');
 
 // ─── Imports ───────────────────────────────────────────────────────────────────
 import express from 'express';
