@@ -32,7 +32,7 @@ export default function Team() {
     }
   };
 
-  // Sync scores (with cut‐cap logic) then reload team
+  // Sync scores then reload team
   const refreshScores = async () => {
     if (!leagueId) return;
     setRefreshing(true);
@@ -50,16 +50,14 @@ export default function Team() {
 
   useEffect(() => {
     if (!leagueId) return;
-    // initial load & scores sync
     refreshScores();
-    // auto-refresh every 2 minutes
     const intervalId = setInterval(refreshScores, 2 * 60 * 1000);
     return () => clearInterval(intervalId);
   }, [leagueId]);
 
   return (
     <Layout>
-      <div className="max-w-3xl mx-auto mt-8 bg-white shadow-lg rounded-lg overflow-hidden">
+      <div className="max-w-md mx-auto mt-8 bg-white shadow-lg rounded-lg overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 bg-green-600">
           <h2 className="text-white text-2xl font-semibold text-center">
@@ -68,7 +66,7 @@ export default function Team() {
         </div>
 
         {/* Body */}
-        <div className="p-6">
+        <div className="px-4 py-6">
           {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
 
           <button
@@ -79,14 +77,15 @@ export default function Team() {
             {refreshing ? 'Refreshing…' : 'Refresh Scores'}
           </button>
 
-          <ul className="space-y-4">
+          {/* Team List */}
+          <ul className="flex flex-col gap-4">
             {team.map((p, idx) => (
               <li
                 key={idx}
-                className="bg-gray-50 p-4 rounded-lg shadow-inner flex justify-between items-center"
+                className="w-full bg-gray-50 p-4 rounded-lg shadow-inner flex justify-between items-center"
               >
                 <span className="font-semibold text-lg">{p.golferName}</span>
-                <div className="text-sm text-gray-600 flex items-center space-x-4">
+                <div className="flex items-center space-x-4 text-sm text-gray-600">
                   <span>Pick #{p.pickNo}</span>
                   <span
                     className={`font-semibold ${
