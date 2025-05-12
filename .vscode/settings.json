@@ -1,0 +1,15 @@
+{
+    "editor.quickSuggestions": {
+      "strings": true
+    },
+    "tailwindCSS.includeLanguages": {
+      "css": "css",
+      "postcss": "css",
+      "scss": "scss",
+      "html": "html",
+      "javascript": "javascript",
+      "javascriptreact": "javascript"
+    },
+    "css.validate": false
+  }
+  
