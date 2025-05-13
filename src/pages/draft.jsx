@@ -282,9 +282,9 @@ export default function Draft() {
           </ul>
         </div>
 
-        {/* Your Picks */}
+        {/* Results */}
         <div>
-          <h2 className="text-xl font-semibold mb-2">Your Picks</h2>
+          <h2 className="text-xl font-semibold mb-2">Results</h2>
           <ul className="space-y-3">
             {picks.map((p, idx) => (
               <li
