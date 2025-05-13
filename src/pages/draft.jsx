@@ -179,7 +179,7 @@ export default function Draft() {
   return (
     <Layout>
       {/* banner */}
-      <div className="w-full bg-gradient-to-r from-green-500 to-green-300 p-6 rounded-xl mb-6">
+      <div className="flex flex-col items-center py-4 bg-gradient-to-r from-green-500 to-green-300">
         <h1 className="text-2xl font-bold text-white text-center mb-4">
           Draft Room
         </h1>
