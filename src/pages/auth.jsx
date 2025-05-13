@@ -56,12 +56,12 @@ export default function Auth() {
 
   return (
     <Layout>
-      {/* Developed by label */}
-      <div className="absolute top-4 right-4 text-xs text-gray-500">
+      {/* Developed by label fixed bottom-right */}
+      <div className="fixed bottom-4 right-4 text-xs text-gray-500 select-none">
         Developed by Michael Morris
       </div>
 
-      <div className="max-w-md mx-auto mt-12 p-8 bg-white shadow-lg rounded-2xl relative">
+      <div className="max-w-md mx-auto mt-12 p-8 bg-white shadow-lg rounded-2xl">
         <h1 className="text-3xl font-bold mb-6 text-center text-purple-600">
           Fantasy Golf
         </h1>
