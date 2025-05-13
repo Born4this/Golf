@@ -23,11 +23,18 @@ export default function Layout({ children }) {
         return res.json()
       })
       .then(data => setLeague(data.league))
-      .catch(err => console.error('League fetch error:', err))
+      .catch(() => { /* swallow errors */ })
   }, [leagueId])
 
   return (
-    <div className="min-h-screen bg-blue-50">
+    <div
+      className="min-h-screen"
+      style={{
+        backgroundImage: `url('/images/bg.jpg')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center bottom',
+      }}
+    >
       <div className="max-w-5xl mx-auto px-4 py-6">
         {league && (
           <header className="mb-8">
