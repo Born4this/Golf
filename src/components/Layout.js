@@ -7,6 +7,12 @@ export default function Layout({ children }) {
   const { leagueId } = router.query
   const [league, setLeague] = useState(null)
 
+  // on Next.js, `router.pathname` is the page template ("/draft")
+  // but in case of a catch-all or different name, also guard by URL:
+  const isDraftPage =
+    router.pathname === '/draft' ||
+    router.asPath.startsWith('/draft')
+
   useEffect(() => {
     if (!leagueId) return
     const token = localStorage.getItem('token')
@@ -18,23 +24,24 @@ export default function Layout({ children }) {
         Authorization: `Bearer ${token}`,
       },
     })
-      .then(res => {
-        if (!res.ok) throw new Error('Couldn’t load league')
-        return res.json()
-      })
+      .then(res => (res.ok ? res.json() : Promise.reject()))
       .then(data => setLeague(data.league))
-      .catch(() => { /* swallow errors */ })
+      .catch(() => {
+        /* ignore errors so child pages always render */
+      })
   }, [leagueId])
 
-  return (
-    <div
-      className="min-h-screen"
-      style={{
+  // Only attach the course background if NOT on draft
+  const wrapperStyle = !isDraftPage
+    ? {
         backgroundImage: `url('/images/bg.jpg')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center bottom',
-      }}
-    >
+      }
+    : undefined
+
+  return (
+    <div className="min-h-screen" style={wrapperStyle}>
       <div className="max-w-5xl mx-auto px-4 py-6">
         {league && (
           <header className="mb-8">
