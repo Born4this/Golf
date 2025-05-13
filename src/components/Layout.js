@@ -7,10 +7,11 @@ export default function Layout({ children }) {
   const { leagueId } = router.query
   const [league, setLeague] = useState(null)
 
-  // Detect draft page
+  // Detect draft page so we don’t show bg behind draft
   const isDraftPage =
     router.pathname === '/draft' || router.asPath.startsWith('/draft')
 
+  // Load league name for header
   useEffect(() => {
     if (!leagueId) return
     const token = localStorage.getItem('token')
@@ -29,28 +30,28 @@ export default function Layout({ children }) {
 
   return (
     <>
-      {/* Full-screen background ONLY if not on draft */}
+      {/* full-bleed background on all non-draft pages */}
       {!isDraftPage && (
         <div
           className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: "url('/images/bg.jpg')",
-          }}
+          style={{ backgroundImage: "url('/images/bg.jpg')" }}
         />
       )}
 
-      {/* Main content wrapper */}
       <div className="relative min-h-screen z-10">
-        <div className="max-w-5xl mx-auto px-4 py-6 bg-white rounded-lg shadow-lg">
-          {league && (
-            <header className="mb-6">
-              <h1 className="text-3xl font-bold text-center text-green-600">
-                {league.name}
-              </h1>
-            </header>
-          )}
+        {/* page header (optional) */}
+        {league && (
+          <header className="max-w-5xl mx-auto px-4 py-6">
+            <h1 className="text-3xl font-bold text-center text-green-600">
+              {league.name}
+            </h1>
+          </header>
+        )}
+
+        {/* page content */}
+        <main className="max-w-5xl mx-auto px-4 pb-6">
           {children}
-        </div>
+        </main>
       </div>
     </>
   )
