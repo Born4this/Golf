@@ -129,8 +129,8 @@ export default function Draft() {
 
   return (
     <Layout>
-      <header className="flex flex-col items-center py-4 bg-gradient-to-r from-green-600 to-green-400">
-        <h1 className="text-3xl font-bold text-white">⛳ Draft Room</h1>
+      <header className="flex flex-col items-center py-4 bg-gradient-to-r from-green-500 to-green-300">
+        <h1 className="text-3xl font-bold text-white">Draft Room</h1>
         <button
           onClick={copyLink}
           disabled={joining}
@@ -197,9 +197,9 @@ export default function Draft() {
           ))}
         </div>
 
-        {/* Your Picks */}
+        {/* Results */}
         <section className="mb-6">
-          <h2 className="text-xl font-semibold mb-2">Your Picks</h2>
+          <h2 className="text-xl font-semibold mb-2">Results</h2>
           <ul className="space-y-2">
             {picks.map((p, idx) => (
               <li key={idx} className="bg-white border-l-4 border-green-500 p-3 shadow-sm rounded">
