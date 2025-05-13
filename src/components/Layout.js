@@ -18,16 +18,16 @@ export default function Layout({ children }) {
         Authorization: `Bearer ${token}`,
       },
     })
-      .then(res => {
-        if (!res.ok) throw new Error('Couldn’t load league')
-        return res.json()
-      })
+      .then(res => res.ok ? res.json() : Promise.reject())
       .then(data => setLeague(data.league))
-      .catch(err => console.error('League fetch error:', err))
+      .catch(() => {
+        // silently ignore errors so pages still render
+      })
   }, [leagueId])
 
   return (
-    <div className="min-h-screen bg-blue-50">
+    // no bg-color here so global bg image shows through
+    <div className="min-h-screen">
       <div className="max-w-5xl mx-auto px-4 py-6">
         {league && (
           <header className="mb-8">
