@@ -65,7 +65,7 @@ export default function Draft() {
       .catch(() => alert('Copy failed'))
   }
 
-  // Fetch league details
+  // Fetch league
   const fetchLeague = async () => {
     try {
       const res = await fetch(`${apiUrl}/api/leagues/${leagueId}`, {
@@ -80,7 +80,7 @@ export default function Draft() {
     }
   }
 
-  // Fetch draft state
+  // Fetch draft
   const fetchDraft = async () => {
     try {
       const res = await fetch(
@@ -102,7 +102,7 @@ export default function Draft() {
     }
   }
 
-  // Fetch full golfer field
+  // Fetch golfers
   const fetchField = async () => {
     try {
       const res = await fetch(`${apiUrl}/api/golfers/current`)
@@ -122,7 +122,7 @@ export default function Draft() {
     return () => clearInterval(iv)
   }, [leagueId])
 
-  // Auto-join invited users
+  // Auto-join on invite
   useEffect(() => {
     if (
       leagueDetails?.members &&
@@ -149,7 +149,7 @@ export default function Draft() {
     }
   }, [leagueDetails])
 
-  // Make a draft pick
+  // Make pick
   const makePick = async (golferId, golferName) => {
     setLoading(true)
     setError('')
@@ -178,15 +178,8 @@ export default function Draft() {
 
   return (
     <Layout>
-      {/* White card wrapper */}
+      {/* Card container */}
       <div className="bg-white rounded-xl shadow-lg p-6 max-w-lg mx-auto space-y-6">
-        {/* League name */}
-        {leagueDetails && (
-          <h2 className="text-2xl font-bold text-center text-green-600">
-            {leagueDetails.name}
-          </h2>
-        )}
-
         {/* Draft Room banner + invite */}
         <div className="flex flex-col items-center py-4 bg-gradient-to-r from-green-500 to-green-300 rounded-lg">
           <h1 className="text-2xl font-bold text-white mb-3">
@@ -207,9 +200,9 @@ export default function Draft() {
 
         {/* Upcoming Picks */}
         <div>
-          <h3 className="text-lg font-semibold mb-2 text-center">
+          <h2 className="text-lg font-semibold mb-2 text-center">
             Upcoming Picks
-          </h3>
+          </h2>
           <ul className="flex space-x-3 overflow-x-auto">
             {upcoming.map((uid, idx) => (
               <li
@@ -248,7 +241,7 @@ export default function Draft() {
           </div>
         ) : null}
 
-        {/* Search bar (always visible) */}
+        {/* Search bar */}
         <div>
           <input
             type="text"
@@ -261,9 +254,9 @@ export default function Draft() {
 
         {/* Available Golfers */}
         <div>
-          <h3 className="text-xl font-semibold mb-2">
+          <h2 className="text-xl font-semibold mb-2">
             Available Golfers
-          </h3>
+          </h2>
           <ul className="space-y-4">
             {filtered.map(g => (
               <li
@@ -291,7 +284,7 @@ export default function Draft() {
 
         {/* Your Picks */}
         <div>
-          <h3 className="text-xl font-semibold mb-2">Your Picks</h3>
+          <h2 className="text-xl font-semibold mb-2">Your Picks</h2>
           <ul className="space-y-3">
             {picks.map((p, idx) => (
               <li
