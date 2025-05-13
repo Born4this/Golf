@@ -129,14 +129,14 @@ export default function Draft() {
 
   return (
     <Layout>
-      <header className="flex flex-col items-center py-4 bg-gradient-to-r from-purple-600 to-pink-500">
+      <header className="flex flex-col items-center py-4 bg-gradient-to-r from-green-600 to-green-400">
         <h1 className="text-3xl font-bold text-white">⛳ Draft Room</h1>
         <button
           onClick={copyLink}
           disabled={joining}
           className="mt-3 inline-flex items-center space-x-2 bg-white bg-opacity-90 hover:bg-opacity-100 px-4 py-2 rounded-full shadow-md transition"
         >
-          <span className="text-pink-600 font-semibold">📨 Invite</span>
+          <span className="text-green-600 font-semibold">📨 Invite</span>
           <span className="text-gray-700 text-sm">Copy Link</span>
         </button>
       </header>
@@ -174,7 +174,7 @@ export default function Draft() {
                 placeholder="Search golfers..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full max-w-md px-4 py-2 rounded-full shadow-inner placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                className="w-full max-w-md px-4 py-2 rounded-full shadow-inner placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
             </div>
           </>
@@ -189,7 +189,7 @@ export default function Draft() {
                 disabled={!leagueReady || !isMyTurn || loading}
                 className={`py-1 px-3 rounded-full text-sm font-semibold transition ${
                   leagueReady && isMyTurn
-                    ? 'bg-pink-500 hover:bg-pink-600 text-white'
+                    ? 'bg-green-500 hover:bg-green-600 text-white'
                     : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                 }`}
               >{loading ? '…' : 'Pick'}</button>
@@ -202,7 +202,7 @@ export default function Draft() {
           <h2 className="text-xl font-semibold mb-2">Your Picks</h2>
           <ul className="space-y-2">
             {picks.map((p, idx) => (
-              <li key={idx} className="bg-white border-l-4 border-pink-500 p-3 shadow-sm rounded">
+              <li key={idx} className="bg-white border-l-4 border-green-500 p-3 shadow-sm rounded">
                 <div className="text-sm font-semibold">Round {p.round}, Pick {p.pickNo}</div>
                 <div className="text-gray-700">{p.golferName} — by {userMap[p.user] || p.user}</div>
               </li>
@@ -213,7 +213,7 @@ export default function Draft() {
         {leagueReady && (
           <button
             onClick={() => router.push(`/team?leagueId=${leagueId}`)}
-            className="mt-4 w-full bg-pink-500 hover:bg-pink-600 text-white py-2 rounded-full font-semibold transition"
+            className="mt-4 w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-full font-semibold transition"
           >View My Team</button>
         )}
       </main>
