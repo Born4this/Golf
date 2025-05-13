@@ -34,9 +34,7 @@ export default function Draft() {
 
   const upcoming = useMemo(() => {
     if (!order.length || !leagueDetails) return [];
-    const start = picks.length;
-    const count = leagueDetails.teamCount;
-    return order.slice(start, start + count);
+    return order.slice(picks.length, picks.length + leagueDetails.teamCount);
   }, [order, picks, leagueDetails]);
 
   const available = useMemo(() => {
@@ -74,8 +72,7 @@ export default function Draft() {
       if (!res.ok) throw new Error(data.msg);
       setPicks(data.picks);
       setOrder(data.draftOrder);
-      const next = data.draftOrder[data.picks.length];
-      setIsMyTurn(next === userId);
+      setIsMyTurn(data.draftOrder[data.picks.length] === userId);
       if (data.draftOrder.length && !leagueDetails?.draftOrder?.length) fetchLeague();
     } catch (err) {
       setError(err.message);
@@ -92,56 +89,57 @@ export default function Draft() {
 
   useEffect(() => {
     if (!leagueId) return;
-    fetchLeague();
-    fetchDraft();
-    fetchField();
+    fetchLeague(); fetchDraft(); fetchField();
     const iv = setInterval(fetchDraft, 10000);
     return () => clearInterval(iv);
   }, [leagueId]);
 
   useEffect(() => {
-    if (leagueDetails?.members && userId && !joining && !leagueDetails.members.some(m => (m._id||m).toString() === userId)) {
+    if (
+      leagueDetails?.members &&
+      userId &&
+      !joining &&
+      !leagueDetails.members.some(m => (m._id||m).toString() === userId)
+    ) {
       setJoining(true);
       fetch(`${apiUrl}/api/leagues/join`, { method: 'POST', headers, body: JSON.stringify({ leagueId }) })
-        .then(r => r.json())
-        .then(data => { if (data.league) { fetchLeague(); fetchDraft(); } })
+        .then(r => r.json()).then(data => { if (data.league) { fetchLeague(); fetchDraft(); } })
         .finally(() => setJoining(false));
     }
   }, [leagueDetails]);
 
   const makePick = async (golferId, golferName) => {
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
       const res = await fetch(`${apiUrl}/api/leagues/${leagueId}/picks`, { method: 'POST', headers, body: JSON.stringify({ golferId, golferName }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.msg);
-      setPicks(data.picks);
-      setOrder(data.draftOrder);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+      const data = await res.json(); if (!res.ok) throw new Error(data.msg);
+      setPicks(data.picks); setOrder(data.draftOrder);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   };
 
   const isComplete = picks.length >= order.length;
 
   return (
     <Layout>
-      <header className="flex flex-col items-center py-4 bg-gradient-to-r from-green-500 to-green-300">
-        <h1 className="text-3xl font-bold text-white">Draft Room</h1>
+      {/* Hero: increased height and overlap */}
+      <header className="relative flex flex-col items-center justify-center
+                         h-[40vh] min-h-[250px]
+                         bg-gradient-to-r from-green-500 to-green-300 text-white">
+        <h1 className="text-4xl font-bold">Draft Room</h1>
         <button
           onClick={copyLink}
           disabled={joining}
-          className="mt-3 inline-flex items-center space-x-2 bg-white bg-opacity-90 hover:bg-opacity-100 px-4 py-2 rounded-full shadow-md transition"
+          className="mt-4 inline-flex items-center space-x-2
+                     bg-white bg-opacity-90 hover:bg-opacity-100
+                     px-5 py-2 rounded-full shadow transition"
         >
           <span className="text-green-600 font-semibold">📨 Invite</span>
-          <span className="text-gray-700 text-sm">Copy Link</span>
+          <span className="text-gray-700">Copy Link</span>
         </button>
       </header>
 
-      <main className="px-4 md:px-8 py-6">
+      <main className="px-4 md:px-8 py-6 -mt-12"> {/* lifted up */}
         {error && <div className="text-red-500 text-center mb-4">{error}</div>}
 
         {!leagueReady && leagueDetails && (
@@ -151,10 +149,10 @@ export default function Draft() {
         )}
 
         {leagueReady && (
-          <>
+          <>  {/* upcoming + search */}
             <section className="mb-6">
               <h2 className="text-xl font-semibold mb-2 text-center">Upcoming Picks</h2>
-              <ul className="flex overflow-x-auto space-x-3 py-2">
+              <ul className="flex overflow-x-auto space-x-3 py-2 px-2">
                 {upcoming.map((uid, idx) => (
                   <li
                     key={idx}
@@ -174,12 +172,15 @@ export default function Draft() {
                 placeholder="Search golfers..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full max-w-md px-4 py-2 rounded-full shadow-inner placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400"
+                className="w-full max-w-md px-4 py-2 rounded-full
+                           shadow-inner placeholder-gray-500
+                           focus:outline-none focus:ring-2 focus:ring-green-400"
               />
             </div>
           </>
         )}
 
+        {/* list + results + button unchanged colors */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           {filtered.map(g => (
             <div key={g.id} className="flex justify-between items-center bg-white shadow rounded-lg py-3 px-4">
@@ -197,7 +198,6 @@ export default function Draft() {
           ))}
         </div>
 
-        {/* Results */}
         <section className="mb-6">
           <h2 className="text-xl font-semibold mb-2">Results</h2>
           <ul className="space-y-2">
