@@ -26,8 +26,21 @@ if (!FRONTEND_URL) {
 }
 
 // Only allow requests from our frontend
+// new: allow both with- and without-www
+const allowedOrigins = [
+  'https://fantasyfairway.com',
+  'https://www.fantasyfairway.com'
+];
+
 app.use(cors({
-  origin: FRONTEND_URL,
+  origin: (incomingOrigin, callback) => {
+    // allow requests with no origin (e.g. mobile apps, curl)
+    if (!incomingOrigin) return callback(null, true);
+    if (allowedOrigins.includes(incomingOrigin)) {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS policy: origin ${incomingOrigin} not allowed`));
+  },
   optionsSuccessStatus: 200
 }));
 
