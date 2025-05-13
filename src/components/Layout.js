@@ -1,4 +1,4 @@
-// src/components/Layout.js
+//Layout.js
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 
