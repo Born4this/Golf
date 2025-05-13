@@ -123,23 +123,19 @@ export default function Draft() {
   return (
     <Layout>
       {/* Hero: increased height and overlap */}
-      <header className="relative flex flex-col items-center justify-center
-                         h-[40vh] min-h-[250px]
-                         bg-gradient-to-r from-green-500 to-green-300 text-white">
-        <h1 className="text-4xl font-bold">Draft Room</h1>
+      <header className="flex flex-col items-center justify-center py-6 bg-gradient-to-r from-green-500 to-green-300 text-white">
+        <h1 className="text-3xl font-bold">Draft Room</h1>
         <button
           onClick={copyLink}
           disabled={joining}
-          className="mt-4 inline-flex items-center space-x-2
-                     bg-white bg-opacity-90 hover:bg-opacity-100
-                     px-5 py-2 rounded-full shadow transition"
+          className="mt-4 inline-flex items-center space-x-2 bg-white bg-opacity-90 hover:bg-opacity-100 px-4 py-2 rounded-full shadow transition"
         >
           <span className="text-green-600 font-semibold">📨 Invite</span>
           <span className="text-gray-700">Copy Link</span>
         </button>
       </header>
 
-      <main className="px-4 md:px-8 py-6 -mt-12"> {/* lifted up */}
+      <main className="px-4 md:px-8 pt-6 pb-12"> {/* lifted up */}
         {error && <div className="text-red-500 text-center mb-4">{error}</div>}
 
         {!leagueReady && leagueDetails && (
