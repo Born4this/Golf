@@ -1,4 +1,4 @@
-/* 1. Tailwind directives — these must come first */
+/* 1. Tailwind directives — must come first */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,20 +7,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 /* 3. Global resets & defaults */
-html, body, #__next {
-  height: 100%;
+html {
+  font-family: 'Inter', sans-serif;
+  background-color: transparent; /* remove slate-50 */
+  color: #374151; /* slate-700 */
+}
+body {
   margin: 0;
   padding: 0;
-}
-
-body {
-  /* page background image */
-  background: url('/images/bg.jpg') no-repeat center bottom;
-  background-size: cover;
-  /* fallback background color */
-  background-color: #f9fafb; /* slate-50 */
-  font-family: 'Inter', sans-serif;
-  color: #374151;           /* slate-700 */
+  background-color: transparent;
 }
 
 /* 4. Default link styles */
