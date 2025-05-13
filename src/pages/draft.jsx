@@ -65,7 +65,7 @@ export default function Draft() {
       .catch(() => alert('Copy failed'))
   }
 
-  // Fetch league
+  // Fetch league details
   const fetchLeague = async () => {
     try {
       const res = await fetch(`${apiUrl}/api/leagues/${leagueId}`, {
@@ -80,7 +80,7 @@ export default function Draft() {
     }
   }
 
-  // Fetch draft
+  // Fetch draft state
   const fetchDraft = async () => {
     try {
       const res = await fetch(
@@ -102,7 +102,7 @@ export default function Draft() {
     }
   }
 
-  // Fetch golfers
+  // Fetch full golfer field
   const fetchField = async () => {
     try {
       const res = await fetch(`${apiUrl}/api/golfers/current`)
@@ -122,7 +122,7 @@ export default function Draft() {
     return () => clearInterval(iv)
   }, [leagueId])
 
-  // Auto-join on invite
+  // Auto-join invited users
   useEffect(() => {
     if (
       leagueDetails?.members &&
@@ -149,7 +149,7 @@ export default function Draft() {
     }
   }, [leagueDetails])
 
-  // Make pick
+  // Make a draft pick
   const makePick = async (golferId, golferName) => {
     setLoading(true)
     setError('')
@@ -178,32 +178,59 @@ export default function Draft() {
 
   return (
     <Layout>
-      {/* Outer card */}
+      {/* White card wrapper */}
       <div className="bg-white rounded-xl shadow-lg p-6 max-w-lg mx-auto space-y-6">
-        {/* Banner */}
+        {/* League name */}
+        {leagueDetails && (
+          <h2 className="text-2xl font-bold text-center text-green-600">
+            {leagueDetails.name}
+          </h2>
+        )}
+
+        {/* Draft Room banner + invite */}
         <div className="flex flex-col items-center py-4 bg-gradient-to-r from-green-500 to-green-300 rounded-lg">
-          <h1 className="text-2xl font-bold text-white mb-3">Draft Room</h1>
+          <h1 className="text-2xl font-bold text-white mb-3">
+            Draft Room
+          </h1>
           <button
             onClick={copyLink}
             className="inline-flex items-center space-x-2 bg-white bg-opacity-90 px-5 py-2 rounded-full shadow hover:bg-opacity-100 transition"
           >
-            <span className="text-green-600 font-semibold">📨 Invite</span>
-            <span className="text-gray-700">{joining ? 'Joining…' : 'Copy Link'}</span>
+            <span className="text-green-600 font-semibold">
+              📨 Invite
+            </span>
+            <span className="text-gray-700">
+              {joining ? 'Joining…' : 'Copy Link'}
+            </span>
           </button>
         </div>
 
-        {/* Error */}
-        {error && <div className="text-red-500 text-center">{error}</div>}
+        {/* Upcoming Picks */}
+        <div>
+          <h3 className="text-lg font-semibold mb-2 text-center">
+            Upcoming Picks
+          </h3>
+          <ul className="flex space-x-3 overflow-x-auto">
+            {upcoming.map((uid, idx) => (
+              <li
+                key={idx}
+                className={`min-w-[6rem] py-2 px-3 text-center rounded-lg ${
+                  idx === 0 ? 'bg-green-200' : 'bg-gray-100'
+                }`}
+              >
+                {userMap[uid] || uid}
+              </li>
+            ))}
+          </ul>
+        </div>
 
-        {/* Waiting banner */}
-        {!leagueReady && leagueDetails && (
+        {/* Status message */}
+        {!leagueReady && leagueDetails ? (
           <div className="text-yellow-800 bg-yellow-100 py-2 px-4 rounded text-center">
-            Waiting for players: {leagueDetails.members.length}/{leagueDetails.teamCount}
+            Waiting for players: {leagueDetails.members.length}/
+            {leagueDetails.teamCount}
           </div>
-        )}
-
-        {/* Status banner */}
-        {leagueReady && (
+        ) : leagueReady ? (
           <div
             className={`text-center py-2 px-4 rounded ${
               isComplete
@@ -219,93 +246,75 @@ export default function Draft() {
               ? '🎯 It’s your turn!'
               : '⏳ Waiting for others...'}
           </div>
-        )}
+        ) : null}
 
-        {/* Search (always shown just below status) */}
-        {leagueDetails && (
-          <div>
-            <input
-              type="text"
-              placeholder="Search golfers..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 rounded-full shadow-inner placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400"
-            />
-          </div>
-        )}
-
-        {/* Upcoming Picks */}
-        {leagueReady && (
-          <div>
-            <h2 className="text-lg font-semibold mb-2 text-center">Upcoming Picks</h2>
-            <ul className="flex space-x-3 overflow-x-auto">
-              {upcoming.map((uid, idx) => (
-                <li
-                  key={idx}
-                  className={`min-w-[6rem] py-2 px-3 text-center rounded-lg ${
-                    idx === 0 ? 'bg-green-200' : 'bg-gray-100'
-                  }`}
-                >
-                  {userMap[uid] || uid}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Lists */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Available */}
-          <div>
-            <h2 className="text-xl font-semibold mb-2">Available Golfers</h2>
-            <ul className="space-y-4">
-              {filtered.map(g => (
-                <li
-                  key={g.id}
-                  className="flex justify-between items-center bg-gray-50 rounded-xl px-5 py-3 shadow"
-                >
-                  <span className="font-medium text-gray-800">{g.name}</span>
-                  <button
-                    onClick={() => makePick(g.id, g.name)}
-                    disabled={!leagueReady || !isMyTurn || loading}
-                    className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
-                      leagueReady && isMyTurn
-                        ? 'bg-green-500 hover:bg-green-600 text-white'
-                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    }`}
-                  >
-                    {loading ? 'Picking…' : 'Pick'}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Your Picks */}
-          <div>
-            <h2 className="text-xl font-semibold mb-2">Your Picks</h2>
-            <ul className="space-y-3">
-              {picks.map((p, idx) => (
-                <li
-                  key={idx}
-                  className="bg-white border-l-4 border-purple-500 p-4 rounded-lg shadow-sm"
-                >
-                  <div className="text-sm font-semibold mb-1">
-                    Round {p.round}, Pick {p.pickNo}
-                  </div>
-                  <div className="text-gray-700">
-                    {p.golferName} — by {userMap[p.user] || p.user}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
+        {/* Search bar (always visible) */}
+        <div>
+          <input
+            type="text"
+            placeholder="Search golfers..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="w-full px-4 py-2 rounded-full border-2 border-gray-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400"
+          />
         </div>
 
-        {/* View Team */}
+        {/* Available Golfers */}
+        <div>
+          <h3 className="text-xl font-semibold mb-2">
+            Available Golfers
+          </h3>
+          <ul className="space-y-4">
+            {filtered.map(g => (
+              <li
+                key={g.id}
+                className="flex justify-between items-center bg-gray-50 rounded-xl px-5 py-3 shadow"
+              >
+                <span className="font-medium text-gray-800">
+                  {g.name}
+                </span>
+                <button
+                  onClick={() => makePick(g.id, g.name)}
+                  disabled={!leagueReady || !isMyTurn || loading}
+                  className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
+                    leagueReady && isMyTurn
+                      ? 'bg-green-500 hover:bg-green-600 text-white'
+                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {loading ? 'Picking…' : 'Pick'}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Your Picks */}
+        <div>
+          <h3 className="text-xl font-semibold mb-2">Your Picks</h3>
+          <ul className="space-y-3">
+            {picks.map((p, idx) => (
+              <li
+                key={idx}
+                className="bg-white border-l-4 border-purple-500 p-4 rounded-lg shadow-sm"
+              >
+                <div className="text-sm font-semibold mb-1">
+                  Round {p.round}, Pick {p.pickNo}
+                </div>
+                <div className="text-gray-700">
+                  {p.golferName} — by {userMap[p.user] || p.user}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* View My Team */}
         {leagueReady && (
           <button
-            onClick={() => router.push(`/team?leagueId=${leagueId}`)}
+            onClick={() =>
+              router.push(`/team?leagueId=${leagueId}`)
+            }
             className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-lg font-semibold transition"
           >
             View My Team
