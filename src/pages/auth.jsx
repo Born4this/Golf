@@ -4,11 +4,11 @@ import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 
 export default function Auth() {
+  const router = useRouter();
+  const { redirect } = router.query;
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
-  const router = useRouter();
-  const { redirect } = router.query;
 
   const toggleMode = () => {
     setError('');
@@ -16,7 +16,7 @@ export default function Auth() {
   };
 
   const handleChange = (e) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e) => {
@@ -40,7 +40,6 @@ export default function Auth() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('userId', data.user.id);
 
-      // Determine destination: decode redirect or fallback
       let destination = '/league-selector';
       if (redirect) {
         try {
@@ -49,17 +48,20 @@ export default function Auth() {
           destination = redirect;
         }
       }
-
       router.push(destination);
-    } catch (err) {
-      console.error(err);
+    } catch {
       setError('Server error');
     }
   };
 
   return (
     <Layout>
-      <div className="max-w-md mx-auto mt-12 p-8 bg-white shadow-lg rounded-2xl">
+      {/* Developed by label */}
+      <div className="absolute top-4 right-4 text-xs text-gray-500">
+        Developed by Michael Morris
+      </div>
+
+      <div className="max-w-md mx-auto mt-12 p-8 bg-white shadow-lg rounded-2xl relative">
         <h1 className="text-3xl font-bold mb-6 text-center text-purple-600">
           Fantasy Golf
         </h1>
@@ -107,9 +109,7 @@ export default function Auth() {
         </form>
 
         <p className="mt-4 text-center text-sm text-gray-600">
-          {isLogin
-            ? "Don't have an account?"
-            : 'Already have an account?'}{' '}
+          {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
           <button
             onClick={toggleMode}
             className="font-medium text-green-600 hover:underline"
