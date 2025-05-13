@@ -36,8 +36,8 @@ export default function Layout({ children }) {
     : {}
 
   return (
-    <div className="min-h-screen w-full bg-transparent" style={wrapperStyle}>
-      <div className="max-w-5xl mx-auto px-4 py-6">
+    <div className="min-h-screen w-full" style={wrapperStyle}>
+      <div className="max-w-5xl mx-auto px-4 py-6 bg-white rounded-lg shadow-lg">
         {league && (
           <header className="mb-8">
             <h1 className="text-3xl font-bold text-center text-green-600">
