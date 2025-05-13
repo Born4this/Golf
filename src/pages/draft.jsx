@@ -1,125 +1,126 @@
 // src/pages/draft.jsx
-import React, { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/router';
-import Layout from '../components/Layout';
+import React, { useEffect, useState, useMemo } from 'react'
+import { useRouter } from 'next/router'
+import Layout from '../components/Layout'
 
 export default function Draft() {
-  const router = useRouter();
-  const { leagueId } = router.query;
+  const router = useRouter()
+  const { leagueId } = router.query
 
-  const [field, setField] = useState([]);           
-  const [picks, setPicks] = useState([]);
-  const [order, setOrder] = useState([]);
-  const [leagueDetails, setLeagueDetails] = useState(null);
-  const [searchTerm, setSearchTerm] = useState(''); 
-  const [isMyTurn, setIsMyTurn] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [joining, setJoining] = useState(false);
+  const [field, setField] = useState([])
+  const [picks, setPicks] = useState([])
+  const [order, setOrder] = useState([])
+  const [leagueDetails, setLeagueDetails] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isMyTurn, setIsMyTurn] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [joining, setJoining] = useState(false)
 
-  const token  = typeof window !== 'undefined' && localStorage.getItem('token');
-  const userId = typeof window !== 'undefined' && localStorage.getItem('userId');
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
+  const token = typeof window !== 'undefined' && localStorage.getItem('token')
+  const userId = typeof window !== 'undefined' && localStorage.getItem('userId')
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL
   const headers = {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,
-  };
+  }
 
-  // Is draft-startable?
-  const leagueReady = leagueDetails?.members?.length >= leagueDetails?.teamCount;
+  const leagueReady =
+    leagueDetails?.members?.length >= leagueDetails?.teamCount
 
-  // Map user IDs to usernames
   const userMap = useMemo(() => {
     return (leagueDetails?.members || []).reduce((map, u) => {
-      const id = u._id?.toString() || u.toString();
-      map[id] = u.username;
-      return map;
-    }, {});
-  }, [leagueDetails]);
+      const id = u._id?.toString() || u.toString()
+      map[id] = u.username
+      return map
+    }, {})
+  }, [leagueDetails])
 
-  // Next picks
   const upcoming = useMemo(() => {
-    if (!order.length || !leagueDetails) return [];
-    const start = picks.length;
-    const count = leagueDetails.teamCount;
-    return order.slice(start, start + count);
-  }, [order, picks, leagueDetails]);
+    if (!order.length || !leagueDetails) return []
+    const start = picks.length
+    const count = leagueDetails.teamCount
+    return order.slice(start, start + count)
+  }, [order, picks, leagueDetails])
 
-  // Available golfers
   const available = useMemo(() => {
-    const picked = new Set(picks.map(p => p.golfer));
-    return field.filter(g => !picked.has(g.id));
-  }, [field, picks]);
+    const picked = new Set(picks.map(p => p.golfer))
+    return field.filter(g => !picked.has(g.id))
+  }, [field, picks])
 
-  // Filter by search
   const filtered = useMemo(() => {
-    if (!searchTerm) return available;
-    return available.filter(g => 
+    if (!searchTerm) return available
+    return available.filter(g =>
       g.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [available, searchTerm]);
+    )
+  }, [available, searchTerm])
 
-  // Copy invite link
   const copyLink = () => {
-    const inviteUrl = `${window.location.origin}/auth?redirect=${encodeURIComponent(`/draft?leagueId=${leagueId}`)}`;
-    navigator.clipboard.writeText(inviteUrl)
+    const inviteUrl = `${window.location.origin}/auth?redirect=${encodeURIComponent(
+      `/draft?leagueId=${leagueId}`
+    )}`
+    navigator.clipboard
+      .writeText(inviteUrl)
       .then(() => alert('Invite link copied!'))
-      .catch(() => alert('Copy failed'));
-  };
+      .catch(() => alert('Copy failed'))
+  }
 
   // Fetch league details
   const fetchLeague = async () => {
     try {
-      const res = await fetch(`${apiUrl}/api/leagues/${leagueId}`, { headers });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.msg || 'Failed to fetch league');
-      setLeagueDetails(data.league);
+      const res = await fetch(`${apiUrl}/api/leagues/${leagueId}`, {
+        headers,
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.msg || 'Failed to fetch league')
+      setLeagueDetails(data.league)
     } catch (err) {
-      console.error(err);
-      setError(err.message);
+      console.error(err)
+      setError(err.message)
     }
-  };
+  }
 
   // Fetch draft state
   const fetchDraft = async () => {
     try {
-      const res = await fetch(`${apiUrl}/api/leagues/${leagueId}/draft-list`, { headers });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.msg || 'Failed to fetch draft');
-      setPicks(data.picks);
-      setOrder(data.draftOrder);
-      const next = data.draftOrder[data.picks.length];
-      setIsMyTurn(next === userId);
+      const res = await fetch(
+        `${apiUrl}/api/leagues/${leagueId}/draft-list`,
+        { headers }
+      )
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.msg || 'Failed to fetch draft')
+      setPicks(data.picks)
+      setOrder(data.draftOrder)
+      const next = data.draftOrder[data.picks.length]
+      setIsMyTurn(next === userId)
       if (data.draftOrder.length && !leagueDetails?.draftOrder?.length) {
-        fetchLeague();
+        fetchLeague()
       }
     } catch (err) {
-      console.error(err);
-      setError(err.message);
+      console.error(err)
+      setError(err.message)
     }
-  };
+  }
 
   // Fetch full field
   const fetchField = async () => {
     try {
-      const res = await fetch(`${apiUrl}/api/golfers/current`);
-      const data = await res.json();
-      setField(data.field);
+      const res = await fetch(`${apiUrl}/api/golfers/current`)
+      const data = await res.json()
+      setField(data.field)
     } catch (err) {
-      console.error('Failed to fetch golfers', err);
+      console.error('Failed to fetch golfers', err)
     }
-  };
+  }
 
-  // Initial and polling
   useEffect(() => {
-    if (!leagueId) return;
-    fetchLeague();
-    fetchDraft();
-    fetchField();
-    const iv = setInterval(fetchDraft, 10000);
-    return () => clearInterval(iv);
-  }, [leagueId]);
+    if (!leagueId) return
+    fetchLeague()
+    fetchDraft()
+    fetchField()
+    const iv = setInterval(fetchDraft, 10000)
+    return () => clearInterval(iv)
+  }, [leagueId])
 
   // Auto-join invitees
   useEffect(() => {
@@ -127,9 +128,11 @@ export default function Draft() {
       leagueDetails?.members &&
       userId &&
       !joining &&
-      !leagueDetails.members.some(m => (m._id||m).toString() === userId)
+      !leagueDetails.members.some(
+        m => (m._id || m).toString() === userId
+      )
     ) {
-      setJoining(true);
+      setJoining(true)
       fetch(`${apiUrl}/api/leagues/join`, {
         method: 'POST',
         headers,
@@ -138,64 +141,70 @@ export default function Draft() {
         .then(r => r.json())
         .then(data => {
           if (data.league) {
-            setLeagueDetails(data.league);
-            fetchDraft();
-          } else {
-            setError(data.msg || 'Failed to join league');
+            setLeagueDetails(data.league)
+            fetchDraft()
           }
         })
-        .catch(err => setError(err.message))
-        .finally(() => setJoining(false));
+        .finally(() => setJoining(false))
     }
-  }, [leagueDetails]);
+  }, [leagueDetails])
 
   // Make a pick
   const makePick = async (golferId, golferName) => {
-    setLoading(true);
-    setError('');
+    setLoading(true)
+    setError('')
     try {
-      const res = await fetch(`${apiUrl}/api/leagues/${leagueId}/picks`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ golferId, golferName }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.msg || 'Failed to make pick');
-      setPicks(data.picks);
-      setOrder(data.draftOrder);
+      const res = await fetch(
+        `${apiUrl}/api/leagues/${leagueId}/picks`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ golferId, golferName }),
+        }
+      )
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.msg || 'Failed to make pick')
+      setPicks(data.picks)
+      setOrder(data.draftOrder)
     } catch (err) {
-      console.error(err);
-      setError(err.message);
+      console.error(err)
+      setError(err.message)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const isComplete = picks.length >= order.length;
+  const isComplete = picks.length >= order.length
 
   return (
     <Layout>
       <h1 className="text-3xl font-bold text-center text-purple-700 mb-2">
         ⛳ Draft Room
       </h1>
+
       <div className="flex justify-center mb-4">
+        {/* always enabled immediately */}
         <button
           onClick={copyLink}
-          disabled={joining}
           className="bg-gray-200 px-3 py-1 rounded"
         >
-          {joining ? 'Joining…' : '📨 Invite'}
+          📨 Invite
         </button>
       </div>
 
-      {error && <div className="text-red-500 text-center mb-4">{error}</div>}
+      {error && (
+        <div className="text-red-500 text-center mb-4">{error}</div>
+      )}
+
       {!leagueReady && leagueDetails && (
         <div className="text-yellow-800 bg-yellow-100 py-2 px-4 rounded mb-4 text-center">
-          Waiting for players: {leagueDetails.members.length}/{leagueDetails.teamCount}
+          Waiting for players:{' '}
+          {leagueDetails.members.length}/
+          {leagueDetails.teamCount}
         </div>
       )}
 
-      {/* Always show search once we have leagueDetails */}
+      {/* show search as soon as league details exist */}
       {leagueDetails && (
         <div className="mb-4 text-center">
           <input
@@ -210,7 +219,9 @@ export default function Draft() {
 
       {leagueReady && (
         <>
-          <h2 className="text-xl font-semibold text-center mb-2">Upcoming Picks</h2>
+          <h2 className="text-xl font-semibold text-center mb-2">
+            Upcoming Picks
+          </h2>
           <ol className="list-decimal list-inside grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
             {upcoming.map((uid, idx) => (
               <li
@@ -243,9 +254,10 @@ export default function Draft() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Available golfers */}
         <div>
-          <h2 className="text-xl font-semibold mb-2">Available Golfers</h2>
+          <h2 className="text-xl font-semibold mb-2">
+            Available Golfers
+          </h2>
           <ul className="space-y-3">
             {filtered.map(g => (
               <li
@@ -255,7 +267,9 @@ export default function Draft() {
                 <span className="font-medium">{g.name}</span>
                 <button
                   onClick={() => makePick(g.id, g.name)}
-                  disabled={!leagueReady || !isMyTurn || loading}
+                  disabled={
+                    !leagueReady || !isMyTurn || loading
+                  }
                   className={`px-3 py-1 rounded-lg text-sm font-semibold transition ${
                     leagueReady && isMyTurn
                       ? 'bg-green-600 hover:bg-green-700 text-white'
@@ -269,9 +283,10 @@ export default function Draft() {
           </ul>
         </div>
 
-        {/* Your picks */}
         <div>
-          <h2 className="text-xl font-semibold mb-2">Your Picks</h2>
+          <h2 className="text-xl font-semibold mb-2">
+            Your Picks
+          </h2>
           <ul className="space-y-2">
             {picks.map((p, idx) => (
               <li
@@ -282,7 +297,8 @@ export default function Draft() {
                   Round {p.round}, Pick {p.pickNo}
                 </div>
                 <div className="text-gray-700">
-                  {p.golferName} — by {userMap[p.user] || p.user}
+                  {p.golferName} — by{' '}
+                  {userMap[p.user] || p.user}
                 </div>
               </li>
             ))}
@@ -292,12 +308,14 @@ export default function Draft() {
 
       {leagueReady && (
         <button
-          onClick={() => router.push(`/team?leagueId=${leagueId}`)}
+          onClick={() =>
+            router.push(`/team?leagueId=${leagueId}`)
+          }
           className="mt-8 w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg text-lg transition"
         >
           View My Team
         </button>
       )}
     </Layout>
-  );
+  )
 }
