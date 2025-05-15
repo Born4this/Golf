@@ -20,19 +20,20 @@ router.get('/:leagueId', auth, async (req, res) => {
     const { data } = await axios.get(
       'https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard'
     );
-    const event       = data.events?.[0];
-    const comps       = event?.competitions?.[0]?.competitors || [];
-    const tournament  = event?.tournament;
+    const event      = data.events?.[0];
+    const comps      = event?.competitions?.[0]?.competitors || [];
+    const tournament = event?.tournament;
+
     // Determine cut line if league is in "cap at cut" mode
-    const cutScore = league.cutHandling === 'cap'
-      ? typeof tournament?.cutScore === 'number'
-        ? tournament.cutScore
-        : null
-      : null;
+    const rawCut = tournament?.cutScore;
+    const cutScore =
+      league.cutHandling === 'cap' && typeof rawCut === 'number' && rawCut > 0
+        ? rawCut
+        : null;
 
     // 3) Build scores array, clamping at cutScore if needed
     const scores = golferIds.map(id => {
-      const c = comps.find(c => c.athlete.id.toString() === id);
+      const c = comps.find(cmp => cmp.athlete.id.toString() === id);
       // pull the "scoreToPar" statistic, or fall back to displayValue
       const stat = c?.statistics?.find(s => s.name === 'scoreToPar');
       let toPar = null;
@@ -43,7 +44,7 @@ router.get('/:leagueId', auth, async (req, res) => {
         toPar = parseInt(c.score.displayValue, 10);
       }
 
-      // If in "cap" mode and cutScore is available, clamp the strokes
+      // If in "cap" mode and cutScore is active, clamp the strokes
       let finalStrokes = toPar;
       if (cutScore != null && toPar != null && toPar > cutScore) {
         finalStrokes = cutScore;
