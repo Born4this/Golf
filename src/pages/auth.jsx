@@ -60,7 +60,7 @@ export default function Auth() {
     <Layout>
       {/* Centered card */}
       <div className="max-w-md mx-auto mt-12 p-8 bg-white shadow-lg rounded-2xl">
-        <h1 className="text-3xl font-bold mb-6 text-center text-purple-600">
+        <h1 className="text-3xl font-bold mb-6 text-center text-green-600">
           Fantasy Golf
         </h1>
         <h2 className="text-xl font-semibold mb-4 text-center text-gray-700">
