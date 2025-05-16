@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/20/solid';
 import Layout from '../components/Layout';
+import PlayerModal from '../components/PlayerModal';
 
 export default function Leaderboard() {
   const router = useRouter();
@@ -12,6 +13,10 @@ export default function Leaderboard() {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
   const [openUser, setOpenUser] = useState(null);
+
+  // Player modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
 
   const token =
     typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -59,6 +64,18 @@ export default function Leaderboard() {
 
   const toggle = (uid) => setOpenUser(openUser === uid ? null : uid);
 
+  // Fetch player details for modal
+  const onPlayerClick = async (golferId) => {
+    try {
+      const res = await fetch(`/api/players/${golferId}`);
+      const data = await res.json();
+      setSelectedPlayer(data);
+      setModalOpen(true);
+    } catch (err) {
+      console.error('Failed to fetch player data', err);
+    }
+  };
+
   return (
     <Layout>
       <div className="max-w-3xl mx-auto mt-8 bg-white shadow-lg rounded-lg overflow-hidden">
@@ -102,7 +119,15 @@ export default function Leaderboard() {
                     >
                       <td className="px-4 py-3">{i + 1}</td>
                       <td className="px-4 py-3 flex items-center justify-between">
-                        <span>{s.username}</span>
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onPlayerClick(s.userId);
+                          }}
+                          className="cursor-pointer hover:underline"
+                        >
+                          {s.username}
+                        </span>
                         {openUser === s.userId ? (
                           <ChevronDownIcon className="w-5 h-5 text-gray-400" />
                         ) : (
@@ -124,7 +149,12 @@ export default function Leaderboard() {
                                 key={p.golferId}
                                 className="flex justify-between py-2"
                               >
-                                <span>{p.name}</span>
+                                <span
+                                  onClick={() => onPlayerClick(p.golferId)}
+                                  className="cursor-pointer hover:underline"
+                                >
+                                  {p.name}
+                                </span>
                                 <span className="font-mono">{p.strokes}</span>
                               </li>
                             ))}
@@ -147,6 +177,13 @@ export default function Leaderboard() {
           </button>
         </div>
       </div>
+
+      {/* Player Details Modal */}
+      <PlayerModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        player={selectedPlayer}
+      />
     </Layout>
   );
 }

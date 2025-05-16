@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import Layout from '../components/Layout'
+import PlayerModal from '../components/PlayerModal'
 
 export default function Draft() {
   const router = useRouter()
@@ -17,8 +18,14 @@ export default function Draft() {
   const [loading, setLoading] = useState(false)
   const [joining, setJoining] = useState(false)
 
-  const token = typeof window !== 'undefined' && localStorage.getItem('token')
-  const userId = typeof window !== 'undefined' && localStorage.getItem('userId')
+  // Player modal state
+  const [modalOpen, setModalOpen] = useState(false)
+  const [selectedPlayer, setSelectedPlayer] = useState(null)
+
+  const token =
+    typeof window !== 'undefined' && localStorage.getItem('token')
+  const userId =
+    typeof window !== 'undefined' && localStorage.getItem('userId')
   const apiUrl = process.env.NEXT_PUBLIC_API_URL
   const headers = {
     'Content-Type': 'application/json',
@@ -113,6 +120,18 @@ export default function Draft() {
     }
   }
 
+  // Fetch player for modal
+  const onPlayerClick = async golferId => {
+    try {
+      const res = await fetch(`${apiUrl}/api/players/${golferId}`)
+      const data = await res.json()
+      setSelectedPlayer(data)
+      setModalOpen(true)
+    } catch (err) {
+      console.error('Failed to fetch player data', err)
+    }
+  }
+
   useEffect(() => {
     if (!leagueId) return
     fetchLeague()
@@ -189,9 +208,7 @@ export default function Draft() {
             onClick={copyLink}
             className="inline-flex items-center space-x-2 bg-white bg-opacity-90 px-5 py-2 rounded-full shadow hover:bg-opacity-100 transition"
           >
-            <span className="text-green-600 font-semibold">
-              📨 Invite
-            </span>
+            <span className="text-green-600 font-semibold">📨 Invite</span>
             <span className="text-gray-700">
               {joining ? 'Joining…' : 'Copy Link'}
             </span>
@@ -263,7 +280,10 @@ export default function Draft() {
                 key={g.id}
                 className="flex justify-between items-center bg-gray-50 rounded-xl px-5 py-3 shadow"
               >
-                <span className="font-medium text-gray-800">
+                <span
+                  onClick={() => onPlayerClick(g.id)}
+                  className="font-medium text-gray-800 cursor-pointer hover:underline"
+                >
                   {g.name}
                 </span>
                 <button
@@ -295,7 +315,13 @@ export default function Draft() {
                   Round {p.round}, Pick {p.pickNo}
                 </div>
                 <div className="text-gray-700">
-                  {p.golferName} — by {userMap[p.user] || p.user}
+                  <span
+                    onClick={() => onPlayerClick(p.golfer)}
+                    className="cursor-pointer hover:underline font-medium"
+                  >
+                    {p.golferName}
+                  </span>{' '}
+                  — by {userMap[p.user] || p.user}
                 </div>
               </li>
             ))}
@@ -305,15 +331,20 @@ export default function Draft() {
         {/* View My Team */}
         {leagueReady && (
           <button
-            onClick={() =>
-              router.push(`/team?leagueId=${leagueId}`)
-            }
+            onClick={() => router.push(`/team?leagueId=${leagueId}`)}
             className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-lg font-semibold transition"
           >
             View My Team
           </button>
         )}
       </div>
+
+      {/* Player Details Modal */}
+      <PlayerModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        player={selectedPlayer}
+      />
     </Layout>
   )
 }
