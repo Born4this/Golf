@@ -31,10 +31,10 @@ if (!FRONTEND_URL) {
   process.exit(1);
 }
 
-// Security middleware
+// 1) Security headers
 app.use(helmet());
 
-// CORS: only allow specified frontends
+// 2) CORS: only allow specified frontends
 const allowedOrigins = [
   FRONTEND_URL,
   FRONTEND_URL.startsWith('https://')
@@ -54,11 +54,19 @@ app.use(
   })
 );
 
-// Body parsers
+// 3) Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting (100 requests per 15 minutes per IP)
+// 4) NoSQL injection sanitization (body & params only)
+const { sanitize } = mongoSanitize;
+app.use((req, res, next) => {
+  if (req.body) req.body = sanitize(req.body);
+  if (req.params) req.params = sanitize(req.params);
+  next();
+});
+
+// 5) Rate limiting (100 requests per 15 minutes per IP)
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -66,13 +74,10 @@ const apiLimiter = rateLimit({
 });
 app.use('/api', apiLimiter);
 
-// Data sanitization against NoSQL injection
-app.use(mongoSanitize());
-
-// Data sanitization against XSS
+// 6) Data sanitization against XSS
 app.use(xssClean());
 
-// Prevent HTTP parameter pollution
+// 7) Prevent HTTP parameter pollution
 app.use(hpp());
 
 // Routes
@@ -89,10 +94,7 @@ app.use(celebrateErrors());
 
 // Connect to MongoDB and start server
 mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  })
+  .connect(process.env.MONGO_URI)
   .then(() => {
     console.log('✔️ MongoDB connected');
     app.listen(PORT, () => console.log(`🚀 Server listening on port ${PORT}`));
