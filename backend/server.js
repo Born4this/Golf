@@ -6,7 +6,6 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
-import xssClean from 'xss-clean';
 import hpp from 'hpp';
 import { errors as celebrateErrors } from 'celebrate';
 
@@ -23,6 +22,9 @@ import golferRoutes from './routes/golfers.js';
 
 const app = express();
 const PORT = process.env.PORT || 5025;
+
+// Trust proxy headers (e.g., X-Forwarded-For) for rate limiting
+app.set('trust proxy', 1);
 
 // Ensure FRONTEND_URL is set
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -74,10 +76,7 @@ const apiLimiter = rateLimit({
 });
 app.use('/api', apiLimiter);
 
-// 6) Data sanitization against XSS
-app.use(xssClean());
-
-// 7) Prevent HTTP parameter pollution
+// 6) Prevent HTTP parameter pollution
 app.use(hpp());
 
 // Routes
