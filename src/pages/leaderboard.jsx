@@ -63,11 +63,11 @@ export default function Leaderboard() {
     <Layout>
       <div className="max-w-3xl mx-auto mt-8 bg-white shadow-lg rounded-lg overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 bg-purple-600">
+        <div className="px-6 py-4 bg-green-800">
           <h1 className="text-white text-2xl font-semibold text-center">
             My League
           </h1>
-          <p className="text-purple-200 text-center mt-1">Leaderboard</p>
+          <p className="text-green-300 text-center mt-1">Leaderboard</p>
         </div>
 
         {/* Body */}
@@ -141,7 +141,7 @@ export default function Leaderboard() {
           {/* Back button */}
           <button
             onClick={() => router.push(`/team?leagueId=${leagueId}`)}
-            className="mt-6 w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-md transition-colors"
+            className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md transition-colors"
           >
             Back to My Team
           </button>
