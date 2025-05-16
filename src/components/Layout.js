@@ -7,7 +7,7 @@ export default function Layout({ children }) {
   const { leagueId } = router.query
   const [league, setLeague] = useState(null)
 
-  // Detect draft page so we don’t show bg behind draft
+  // Detect draft page for no bg
   const isDraftPage =
     router.pathname === '/draft' || router.asPath.startsWith('/draft')
 
@@ -30,7 +30,7 @@ export default function Layout({ children }) {
 
   return (
     <>
-      {/* full-bleed background on all non-draft pages */}
+      {/* brackground not draft page */}
       {!isDraftPage && (
         <div
           className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
@@ -39,7 +39,7 @@ export default function Layout({ children }) {
       )}
 
       <div className="relative min-h-screen z-10">
-        {/* page header (optional) */}
+        {/* p */}
         {league && (
           <header className="max-w-5xl mx-auto px-4 py-6">
             <h1 className="text-3xl font-bold text-center text-green-600">
@@ -48,7 +48,7 @@ export default function Layout({ children }) {
           </header>
         )}
 
-        {/* page content */}
+        {/* page */}
         <main className="max-w-5xl mx-auto px-4 pb-6">
           {children}
         </main>

@@ -20,7 +20,7 @@ export default function Leaderboard() {
     Authorization: `Bearer ${token}`,
   };
 
-  // Fetch & refresh both scores and leaderboard, with cut logic applied on server
+  // Refresh scores and leaderboard, cut logic
   const refreshLeaderboard = async () => {
     if (!leagueId) return;
     setLoading(true);
@@ -30,7 +30,7 @@ export default function Leaderboard() {
       const resScores = await fetch(`/api/scores/${leagueId}`, { headers });
       if (!resScores.ok) throw new Error('Failed to refresh scores');
 
-      // 2) Fetch updated standings
+      // 2) Update standings
       const resBoard = await fetch(
         `/api/leagues/${leagueId}/leaderboard`,
         { headers }
@@ -52,7 +52,7 @@ export default function Leaderboard() {
     if (!leagueId) return;
     // Initial load
     refreshLeaderboard();
-    // Auto-refresh every 2 minutes
+    // Refresh every 2 min
     const intervalId = setInterval(refreshLeaderboard, 2 * 60 * 1000);
     return () => clearInterval(intervalId);
   }, [leagueId]);

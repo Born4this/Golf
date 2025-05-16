@@ -19,7 +19,7 @@ export default function LeagueSelector() {
     Authorization: `Bearer ${token}`,
   };
 
-  // Fetch leagues user is in
+  // Find leagues user is in
   const fetchLeagues = async () => {
     setError('');
     try {

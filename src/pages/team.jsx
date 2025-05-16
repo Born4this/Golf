@@ -17,7 +17,7 @@ export default function Team() {
     Authorization: `Bearer ${token}`,
   };
 
-  // Fetch the user's team (without touching scores)
+  // find users teams 
   const fetchTeam = async () => {
     if (!leagueId) return;
     try {
@@ -32,7 +32,7 @@ export default function Team() {
     }
   };
 
-  // Sync scores then reload team
+  // Sync scores then reload
   const refreshScores = async () => {
     if (!leagueId) return;
     setRefreshing(true);

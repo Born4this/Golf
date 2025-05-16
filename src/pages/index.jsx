@@ -8,7 +8,7 @@ export default function Home() {
     // If you want everyone to land on /auth:
     router.replace('/auth');
 
-    // Or, if you’d prefer to send logged-in users straight to league-selector:
+    // Or send logged in users straight to league selector:
     // const token = typeof window !== 'undefined' && localStorage.getItem('token');
     // router.replace(token ? '/league-selector' : '/auth');
   }, [router]);
