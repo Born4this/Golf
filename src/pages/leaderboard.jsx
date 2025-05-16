@@ -63,11 +63,11 @@ export default function Leaderboard() {
     <Layout>
       <div className="max-w-3xl mx-auto mt-8 bg-white shadow-lg rounded-lg overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 bg-green-800">
+        <div className="px-6 py-4 bg-green-600">
           <h1 className="text-white text-2xl font-semibold text-center">
             My League
           </h1>
-          <p className="text-green-300 text-center mt-1">Leaderboard</p>
+          <p className="text-green-200 text-center mt-1">Leaderboard</p>
         </div>
 
         {/* Body */}

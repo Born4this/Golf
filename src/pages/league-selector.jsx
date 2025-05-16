@@ -154,7 +154,7 @@ export default function LeagueSelector() {
             disabled={loading}
             className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
           >
-            {loading ? 'Working…' : 'New'}
+            {loading ? 'Working…' : 'New league'}
           </button>
         </div>
 
