@@ -4,26 +4,18 @@ import axios from 'axios';
 
 const router = express.Router();
 
-// GET current tournament field with basic player info
 router.get('/current', async (req, res) => {
   try {
-    // Fetch live leaderboard data from ESPN
-    const { data } = await axios.get(
-      'https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard'
-    );
+    const { data } = await axios.get('https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard');
 
-    const event        = data.events?.[0];
-    const comps        = event?.competitions?.[0]?.competitors || [];
-    const tournamentName = event?.name || 'Unknown Tournament';
+    const competitors = data.events?.[0]?.competitions?.[0]?.competitors || [];
 
-    // Map competitor info, including headshot and flag
-    const field = comps.map(c => ({
+    const field = competitors.map(c => ({
       id: c.athlete.id.toString(),
-      name: c.athlete.displayName,
-      shortName: c.athlete.shortName,
-      headshot: c.athlete.headshot?.href || null,
-      flag: c.athlete.flag?.href || null
+      name: c.athlete.displayName
     }));
+
+    const tournamentName = data.events?.[0]?.name || 'Unknown Tournament';
 
     res.json({ tournament: tournamentName, field });
   } catch (err) {
