@@ -26,10 +26,13 @@ router.get('/:leagueId', auth, async (req, res) => {
 
     // Determine cut line if league is in "cap at cut" mode
     const rawCut = tournament?.cutScore;
-    const cutScore =
-      league.cutHandling === 'cap' && typeof rawCut === 'number' && rawCut > 0
-        ? rawCut
-        : null;
+    const cutActive =
+      league.cutHandling === 'cap' &&
+      typeof rawCut === 'number' &&
+      rawCut > 0 &&
+      // only clamp once ESPN marks the cut complete
+      Boolean(tournament?.cutComplete);
+    const cutScore = cutActive ? rawCut : null;
 
     // 3) Build scores array, clamping at cutScore if needed
     const scores = golferIds.map(id => {
