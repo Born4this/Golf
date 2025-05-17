@@ -103,7 +103,7 @@ export default function LeagueSelector() {
     <Layout>
       <div className="max-w-md mx-auto mt-10 p-6 bg-white shadow-lg rounded-2xl">
         <h1 className="text-3xl font-bold text-center text-green-600 mb-6">
-          Fantasy Golf
+          Leagues
         </h1>
 
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
@@ -152,7 +152,7 @@ export default function LeagueSelector() {
           <button
             onClick={handleCreate}
             disabled={loading}
-            className="w-full py-3 bg-[#1A6B31] hover:bg-[#155528] text-white rounded-lg font-semibold transition"
+            className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
           >
             {loading ? 'Working…' : 'New league'}
           </button>
@@ -205,7 +205,7 @@ export default function LeagueSelector() {
                 </button>
                 <button
                   onClick={() => router.push(`/team?leagueId=${lg._id}`)}
-                  className="flex-1 py-2 bg-[#1A6B31] hover:bg-[#155528] text-white rounded-lg text-center"
+                  className="flex-1 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-center"
                 >
                   My Team
                 </button>

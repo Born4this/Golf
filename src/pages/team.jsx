@@ -59,7 +59,7 @@ export default function Team() {
     <Layout>
       <div className="max-w-md mx-auto mt-8 bg-white shadow-lg rounded-lg overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 bg-[#1A6B31]">
+        <div className="px-6 py-4 bg-green-600">
           <h2 className="text-white text-2xl font-semibold text-center">
             {user ? `${user}'s Team` : 'Your Team'}
           </h2>
@@ -72,7 +72,7 @@ export default function Team() {
           <button
             onClick={refreshScores}
             disabled={refreshing}
-            className="mb-6 w-full py-3 bg-[#1A6B31] hover:bg-[#155528] text-white rounded-md transition disabled:opacity-50"
+            className="mb-6 w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-md transition disabled:opacity-50"
           >
             {refreshing ? 'Refreshing…' : 'Refresh Scores'}
           </button>
@@ -107,7 +107,7 @@ export default function Team() {
 
           <button
             onClick={() => router.push(`/leaderboard?leagueId=${leagueId}`)}
-            className="mt-8 w-full py-3 bg-[#1A6B31] hover:bg-[#155528] text-white rounded-md transition"
+            className="mt-8 w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-md transition"
           >
             View Leaderboard
           </button>
