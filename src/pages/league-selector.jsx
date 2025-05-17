@@ -152,7 +152,7 @@ export default function LeagueSelector() {
           <button
             onClick={handleCreate}
             disabled={loading}
-            className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
+            className="w-full py-3 bg-[#1A6B31] hover:bg-[#155528] text-white rounded-lg font-semibold transition"
           >
             {loading ? 'Working…' : 'New league'}
           </button>
@@ -205,7 +205,7 @@ export default function LeagueSelector() {
                 </button>
                 <button
                   onClick={() => router.push(`/team?leagueId=${lg._id}`)}
-                  className="flex-1 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-center"
+                  className="flex-1 py-2 bg-[#1A6B31] hover:bg-[#155528] text-white rounded-lg text-center"
                 >
                   My Team
                 </button>
