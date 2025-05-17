@@ -70,7 +70,7 @@ export default function Auth() {
 
         {/* Dynamic heading size: smaller for Login */}
         <h2
-          className={`font-semibold mb-4 text-center text-[#1E4151] ${
+          className={`font-semibold mb-2 text-center text-[#1E4151] ${
             isLogin ? 'text-base' : 'text-xl'
           }`}
         >
