@@ -60,11 +60,11 @@ export default function Auth() {
       {/* card */}
       <div className="max-w-md mx-auto mt-12 p-8 bg-white shadow-lg rounded-2xl">
         {/* Logo in place of the heading */}
-        <div className="flex justify-center mb-3">
+        <div className="flex justify-center mb-2">
           <img
             src="images/titlelogo.jpg"
             alt="Fantasy Fairway"
-            className="h-28 w-auto"
+            className="h-24 w-auto"
           />
         </div>
 
