@@ -57,7 +57,7 @@ export default function Auth() {
 
   return (
     <Layout>
-      {/* Centered card */}
+      {/* card */}
       <div className="max-w-md mx-auto mt-12 p-8 bg-white shadow-lg rounded-2xl">
         {/* Logo in place of the heading */}
         <div className="flex justify-center mb-6">
