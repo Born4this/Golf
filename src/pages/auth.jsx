@@ -62,7 +62,7 @@ export default function Auth() {
         {/* Logo in place of the heading */}
         <div className="flex justify-center mb-6">
           <img
-            src="public/images/titlelogo.png"
+            src="images/titlelogo.png"
             alt="Fantasy Fairway"
             className="h-16"
           />
