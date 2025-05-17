@@ -64,7 +64,7 @@ export default function Auth() {
           <img
             src="images/titlelogo.jpg"
             alt="Fantasy Fairway"
-            className="h-42 w-auto"
+            className="h-32 w-auto"
           />
         </div>
 
