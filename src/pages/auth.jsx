@@ -71,7 +71,7 @@ export default function Auth() {
         {/* Dynamic heading size: smaller for Login */}
         <h2
           className={`font-semibold mb-4 text-center text-[#1E4151] ${
-            isLogin ? 'text-lg' : 'text-xl'
+            isLogin ? 'text-base' : 'text-xl'
           }`}
         >
           {isLogin ? 'Login' : 'Sign Up'}
