@@ -118,7 +118,7 @@ export default function Auth() {
       </div>
 
       {/* Fixed badge at viewport bottom-right */}
-      <div className="fixed bottom-4 right-4 z-50 bg-black bg-opacity-60 text-white text-xs font-medium px-3 py-1 rounded-lg shadow-md">
+      <div className="fixed bottom-4 right-4 z-50 bg-black bg-opacity-80 text-white text-xs font-medium px-3 py-1 rounded-lg shadow-md">
         Developed by Michael Morris
       </div>
     </Layout>
