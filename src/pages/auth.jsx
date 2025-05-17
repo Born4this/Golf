@@ -59,11 +59,21 @@ export default function Auth() {
     <Layout>
       {/* Centered card */}
       <div className="max-w-md mx-auto mt-12 p-8 bg-white shadow-lg rounded-2xl">
-        <h1 className="text-3xl font-bold mb-6 text-center text-green-600">
-          Fantasy Golf
-        </h1>
-        {/* Updated login heading color */}
-        <h2 className="text-xl font-semibold mb-4 text-center text-[#1E4151]">
+        {/* Logo in place of the heading */}
+        <div className="flex justify-center mb-6">
+          <img
+            src="/images/titlelogo.png"
+            alt="Fantasy Fairway"
+            className="h-16"
+          />
+        </div>
+
+        {/* Dynamic heading size: smaller for Login */}
+        <h2
+          className={`font-semibold mb-4 text-center text-[#1E4151] ${
+            isLogin ? 'text-lg' : 'text-xl'
+          }`}
+        >
           {isLogin ? 'Login' : 'Sign Up'}
         </h2>
 
