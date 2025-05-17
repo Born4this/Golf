@@ -1,4 +1,3 @@
-// src/pages/auth.jsx
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
@@ -63,7 +62,8 @@ export default function Auth() {
         <h1 className="text-3xl font-bold mb-6 text-center text-green-600">
           Fantasy Golf
         </h1>
-        <h2 className="text-xl font-semibold mb-4 text-center text-gray-700">
+        {/* Updated login heading color */}
+        <h2 className="text-xl font-semibold mb-4 text-center text-[#1E4151]">
           {isLogin ? 'Login' : 'Sign Up'}
         </h2>
 
