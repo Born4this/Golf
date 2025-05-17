@@ -70,8 +70,8 @@ export default function Auth() {
 
         {/* Dynamic heading size: smaller for Login */}
         <h2
-          className={`font-semibold mb-2 text-center text-[#1E4151] ${
-            isLogin ? 'text-base' : 'text-xl'
+          className={`font-semibold mb-4 text-center text-[#1E4151] ${
+            isLogin ? 'text-sm' : 'text-xl'
           }`}
         >
           {isLogin ? 'Login' : 'Sign Up'}
@@ -110,7 +110,7 @@ export default function Auth() {
 
           <button
             type="submit"
-            className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
+            className="w-full py-3 bg-[#1A6B31] hover:bg-[#155528] text-white rounded-lg font-semibold transition"
           >
             {isLogin ? 'Login' : 'Register'}
           </button>
