@@ -5,33 +5,35 @@ import User from '../models/User.js';
 export default async function authMiddleware(req, res, next) {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
+    console.error('❌ [authMiddleware] JWT_SECRET not set');
     return res.status(500).json({ msg: 'Server misconfiguration: JWT_SECRET not set' });
   }
 
-  // 1) Grab & validate the Authorization header format
-  const header = req.header('Authorization') || '';
-  if (!header.startsWith('Bearer ')) {
-    return res.status(401).json({ msg: 'No token, authorization denied' });
+  const authHeader = req.header('Authorization');
+  if (!authHeader) {
+    return res.status(401).json({ msg: 'No authorization header' });
   }
 
-  // 2) Extract the token
-  const token = header.slice(7).trim();  // remove 'Bearer '
+  const parts = authHeader.split(' ');
+  if (parts.length !== 2 || parts[0] !== 'Bearer') {
+    return res.status(401).json({ msg: 'Malformed authorization header' });
+  }
+
+  const token = parts[1].trim();
   if (!token) {
-    return res.status(401).json({ msg: 'No token, authorization denied' });
+    return res.status(401).json({ msg: 'Token not provided' });
   }
 
   try {
-    // Verify token
     const decoded = jwt.verify(token, secret);
-    // Load user without password
     const user = await User.findById(decoded.id).select('-password');
     if (!user) {
-      return res.status(401).json({ msg: 'Invalid token' });
+      return res.status(401).json({ msg: 'Invalid token user' });
     }
     req.user = user;
     next();
   } catch (err) {
-    console.error('Auth middleware error:', err.name, err.message);
+    console.error('🔒 [authMiddleware] JWT error:', err.name, err.message);
     return res.status(401).json({ msg: 'Token is not valid' });
   }
 }
