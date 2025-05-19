@@ -31,23 +31,24 @@ router.get('/current', async (req, res) => {
     if (!Array.isArray(fixtures)) fixtures = fixtures.results || fixtures.data || [];
     const nextEvent = fixtures.find(f => new Date(f.start_date) > new Date());
     if (!nextEvent) throw new Error('No upcoming tournament found');
-    const tournamentId = nextEvent.fixture_id || nextEvent.id;
+    const fixtureId = nextEvent.fixture_id || nextEvent.id;
 
-    // 3) Call Entry List endpoint for full field
-    const entryRes = await axios.get(
-      `https://${HOST}/entry_list/${tournamentId}`,
-      { headers }
-    );
-    const entryData = entryRes.data.results;
-    const rawList = entryData.entry_list_array || [];
+    // 3) Fetch leaderboard to get correct tournament ID for entry list
+    const lbRes = await axios.get(`https://${HOST}/leaderboard/${fixtureId}`, { headers });
+    const tournamentId = lbRes.data.results?.tournament?.id;
+    if (!tournamentId) throw new Error('No tournament ID for entry list');
 
-    // 4) Normalize field: player_id + first/last
+    // 4) Call Entry List endpoint for full field
+    const entryRes = await axios.get(`https://${HOST}/entry_list/${tournamentId}`, { headers });
+    const rawList = entryRes.data.results.entry_list_array || [];
+
+    // 5) Normalize field: player_id + first/last
     const field = rawList.map(p => ({
       id:   p.player_id.toString(),
       name: `${p.first_name} ${p.last_name}`
     }));
 
-    // 5) Tournament name from meta or fixture
+    // 6) Tournament name from meta or nextEvent
     const tournamentName = entryRes.data.meta?.title || nextEvent.name || 'PGA Event';
 
     return res.json({ tournament: tournamentName, field });
