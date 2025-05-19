@@ -1,26 +1,28 @@
 // backend/routes/golfers.js
 import express from 'express';
-import axios from 'axios';
+import auth from '../middleware/auth.js';
+import { getLeaderboard } from '../services/sportContentApiFree.js';
 
 const router = express.Router();
 
-router.get('/current', async (req, res) => {
+// GET /api/golfers/:leagueId
+// Returns the full field (golfer IDs + names) for the next PGA event
+router.get('/:leagueId', auth, async (req, res) => {
   try {
-    const { data } = await axios.get('https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard');
+    // 1) Fetch the leaderboard (cached under the hood)
+    const lbData = await getLeaderboard();
+    const players = lbData.players || [];
 
-    const competitors = data.events?.[0]?.competitions?.[0]?.competitors || [];
-
-    const field = competitors.map(c => ({
-      id: c.athlete.id.toString(),
-      name: c.athlete.displayName
+    // 2) Map into { id, name } format
+    const field = players.map(p => ({
+      id: p.playerId.toString(),
+      name: p.name
     }));
 
-    const tournamentName = data.events?.[0]?.name || 'Unknown Tournament';
-
-    res.json({ tournament: tournamentName, field });
+    res.json({ field });
   } catch (err) {
-    console.error('❌ [GET /api/golfers/current] ESPN fetch failed:', err.message);
-    res.status(500).json({ msg: 'Unable to load tournament field' });
+    console.error('❌ [golfers] ERROR:', err);
+    res.status(500).json({ msg: 'Server error' });
   }
 });
 

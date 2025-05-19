@@ -1,7 +1,6 @@
-// backend/routes/scores.js
 import express from 'express';
 import auth from '../middleware/auth.js';
-import axios from 'axios';
+import { getLeaderboard } from '../services/sportContentApiFree.js';
 import League from '../models/League.js';
 import Score from '../models/Score.js';
 
@@ -16,38 +15,25 @@ router.get('/:leagueId', auth, async (req, res) => {
 
     const golferIds = league.draftPicks.map(p => p.golfer);
 
-    // 2) Fetch live leaderboard data from ESPN
-    const { data } = await axios.get(
-      'https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard'
-    );
-    const event      = data.events?.[0];
-    const comps      = event?.competitions?.[0]?.competitors || [];
-    const tournament = event?.tournament;
+    // 2) Fetch leaderboard + cut line from SportContentAPI (cached)
+    const lbData = await getLeaderboard();
+    const comps = lbData.players || [];
+    const rawCut = lbData.cutLine;
 
     // Determine cut line if league is in "cap at cut" mode
-    const rawCut = tournament?.cutScore;
     const cutActive =
       league.cutHandling === 'cap' &&
       typeof rawCut === 'number' &&
-      rawCut > 0 &&
-      // only clamp once ESPN marks the cut complete
-      Boolean(tournament?.cutComplete);
+      rawCut > 0;
     const cutScore = cutActive ? rawCut : null;
 
     // 3) Build scores array, clamping at cutScore if needed
     const scores = golferIds.map(id => {
-      const c = comps.find(cmp => cmp.athlete.id.toString() === id);
-      // pull the "scoreToPar" statistic, or fall back to displayValue
-      const stat = c?.statistics?.find(s => s.name === 'scoreToPar');
-      let toPar = null;
-      if (stat && typeof stat.value === 'number') {
-        toPar = stat.value;
-      } else if (c?.score?.displayValue) {
-        // e.g. "+3" or "-2"
-        toPar = parseInt(c.score.displayValue, 10);
-      }
+      // Find the player entry by ID
+      const player = comps.find(p => p.playerId.toString() === id);
+      const toPar = player?.scoreToPar ?? null;
 
-      // If in "cap" mode and cutScore is active, clamp the strokes
+      // Clamp strokes at cut line if needed
       let finalStrokes = toPar;
       if (cutScore != null && toPar != null && toPar > cutScore) {
         finalStrokes = cutScore;
@@ -57,14 +43,14 @@ router.get('/:leagueId', auth, async (req, res) => {
     });
 
     // 4) Upsert into Score collection
-    const bulk = scores.map(s => ({
+    const bulkOps = scores.map(s => ({
       updateOne: {
         filter: { golfer: s.golfer },
         update: { $set: { strokes: s.strokes, updatedAt: new Date() } },
         upsert: true
       }
     }));
-    await Score.bulkWrite(bulk);
+    await Score.bulkWrite(bulkOps);
 
     res.json({ scores });
   } catch (err) {
