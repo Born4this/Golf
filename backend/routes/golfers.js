@@ -19,7 +19,7 @@ router.get('/current', async (req, res) => {
 
     // 1) Fetch tours and pick PGA Tour
     const toursRes = await axios.get(`https://${HOST}/tours`, { headers });
-    const tours = toursRes.data.results;
+    const tours = toursRes.data.results || [];
     const pgaTour = tours.find(t =>
       t.active === 1 && /pga tour/i.test(t.tour_name) && t.season_id === new Date().getFullYear()
     );
@@ -47,12 +47,12 @@ router.get('/current', async (req, res) => {
     if (!tournamentId) throw new Error('No tournament ID for entry list');
     console.log('🔍 [golfers] tournamentId:', tournamentId);
 
-    // 4) Call Entry List endpoint with query param
+    // 4) Call Entry List endpoint using hyphenated path param
     const entryRes = await axios.get(
-      `https://${HOST}/entry_list`,
-      { headers, params: { tournament_id: tournamentId } }
+      `https://${HOST}/entry-list/${tournamentId}`,
+      { headers }
     );
-    const results = entryRes.data.results;
+    const results = entryRes.data.results || {};
     const rawList = Array.isArray(results.entry_list_array)
       ? results.entry_list_array
       : Array.isArray(results.entry_list)
