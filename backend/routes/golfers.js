@@ -32,10 +32,12 @@ router.get('/current', async (req, res) => {
     const nextEvent = fixtures.find(f => new Date(f.start_date) > new Date());
     if (!nextEvent) throw new Error('No upcoming tournament found');
     const fixtureId = nextEvent.fixture_id || nextEvent.id;
+    console.log('🥎 [golfers] fixtureId:', fixtureId);
 
     // 3) Fetch leaderboard to get correct tournament ID for entry list
     const lbRes = await axios.get(`https://${HOST}/leaderboard/${fixtureId}`, { headers });
     const tournamentId = lbRes.data.results?.tournament?.id;
+    console.log('🥎 [golfers] tournamentId:', tournamentId);
     if (!tournamentId) throw new Error('No tournament ID for entry list');
 
     // 4) Call Entry List endpoint for full field
