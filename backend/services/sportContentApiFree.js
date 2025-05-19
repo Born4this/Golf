@@ -39,16 +39,23 @@ export async function getLeaderboard() {
         /pga tour/i.test(t.tour_name) &&
         t.season_id === new Date().getFullYear()
       );
+      if (!pga) throw new Error('PGA Tour not found in tours list');
 
       // c) Fetch fixtures for that tour/season
       const fixturesRes = await axios.get(
         `https://${HOST}/fixtures/${pga.tour_id}/${pga.season_id}`,
         { headers }
       );
-      const fixtures = fixturesRes.data.results;
+      // Fixtures may be at data.results or data
+      const fixturesData = fixturesRes.data;
+      const fixtures = Array.isArray(fixturesData)
+        ? fixturesData
+        : fixturesData.results ?? [];
+      if (!fixtures.length) throw new Error('No fixtures returned');
 
       // d) Pick the next upcoming event
       const next = fixtures.find(f => new Date(f.start_date) > new Date());
+      if (!next) throw new Error('No upcoming event found');
       cache.tournamentId = next.fixture_id;
     }
 
