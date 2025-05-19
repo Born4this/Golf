@@ -46,17 +46,23 @@ export async function getLeaderboard() {
         `https://${HOST}/fixtures/${pga.tour_id}/${pga.season_id}`,
         { headers }
       );
-      // Fixtures may be at data.results or data
-      const fixturesData = fixturesRes.data;
-      const fixtures = Array.isArray(fixturesData)
-        ? fixturesData
-        : fixturesData.results ?? [];
-      if (!fixtures.length) throw new Error('No fixtures returned');
+      // Fixtures may be an array or under data.results
+      let fixtures = fixturesRes.data;
+      if (!Array.isArray(fixtures)) {
+        fixtures = fixtures.results ?? fixtures.data ?? fixtures;
+      }
+      if (!Array.isArray(fixtures) || fixtures.length === 0) {
+        throw new Error('No fixtures returned');
+      }
 
       // d) Pick the next upcoming event
       const next = fixtures.find(f => new Date(f.start_date) > new Date());
       if (!next) throw new Error('No upcoming event found');
-      cache.tournamentId = next.fixture_id;
+
+      // Use fixture_id or id depending on API shape
+      const tournamentId = next.fixture_id ?? next.id;
+      if (!tournamentId) throw new Error('No valid tournament ID in fixture');
+      cache.tournamentId = tournamentId;
     }
 
     // 2) Fetch leaderboard + cut line for the seeded tournamentId
