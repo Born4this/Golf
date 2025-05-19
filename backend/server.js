@@ -39,22 +39,25 @@ app.use(helmet());
 // 2) CORS: only allow specified frontends
 const allowedOrigins = [
   FRONTEND_URL,
-  FRONTEND_URL.startsWith('https://')
-    ? FRONTEND_URL.replace('https://', 'https://www.')
-    : FRONTEND_URL
+  // also allow with or without 'www.'
+  FRONTEND_URL.replace(/^https?:\/\//, 'https://www.')
 ];
 app.use(
   cors({
     origin: (incomingOrigin, callback) => {
-      if (!incomingOrigin) return callback(null, true);
-      if (allowedOrigins.includes(incomingOrigin)) {
+      // allow server-to-server or trusted frontends
+      if (!incomingOrigin || allowedOrigins.includes(incomingOrigin)) {
         return callback(null, true);
       }
       callback(new Error(`CORS policy: origin ${incomingOrigin} not allowed`));
     },
-    optionsSuccessStatus: 200
+    optionsSuccessStatus: 200,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true
   })
 );
+// enable pre-flight across the board
+app.options('*', cors());
 
 // 3) Body parsers
 app.use(express.json());
