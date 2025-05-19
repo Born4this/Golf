@@ -64,8 +64,7 @@ router.post('/', auth, async (req, res) => {
 // @route   POST /api/leagues/join
 // @desc    Join an existing league by ID or code
 // @access  Private
-router.post(
-  '/join',
+router.post('/join',
   auth,
   celebrate({ body: joinLeagueSchema }),
   async (req, res) => {

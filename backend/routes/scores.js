@@ -20,7 +20,7 @@ router.get('/:leagueId', auth, async (req, res) => {
     const comps = lbData.players || [];
     const rawCut = lbData.cutLine;
 
-    // Determine cut line if league is in "cap at cut"
+    // Determine cut line if league is in "cap at cut" mode
     const cutActive =
       league.cutHandling === 'cap' &&
       typeof rawCut === 'number' &&
