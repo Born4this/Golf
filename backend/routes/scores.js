@@ -20,51 +20,43 @@ router.get('/:leagueId', auth, async (req, res) => {
     // 2) Fetch live leaderboard data
     const lbData = await getLeaderboard();
     console.log('🔍 [scores] lbData keys:', Object.keys(lbData));
-    console.log('🔍 [scores] lbData.leaderboard type:', typeof lbData.leaderboard);
-    console.log('🔍 [scores] lbData.leaderboard sample:', JSON.stringify(lbData.leaderboard).slice(0, 500));
 
-    // 3) Extract players array from possible keys
-    let players = [];
-    if (Array.isArray(lbData.leaderboard)) {
-      players = lbData.leaderboard;
-    } else if (lbData.leaderboard && Array.isArray(lbData.leaderboard.players)) {
-      players = lbData.leaderboard.players;
-    } else if (Array.isArray(lbData.players)) {
-      players = lbData.players;
-    } else if (Array.isArray(lbData.player_list)) {
-      players = lbData.player_list;
-    }
+    // 3) Identify the player array
+    const players = Array.isArray(lbData.leaderboard)
+      ? lbData.leaderboard
+      : Array.isArray(lbData.players)
+      ? lbData.players
+      : Array.isArray(lbData.player_list)
+      ? lbData.player_list
+      : [];
     console.log('🔍 [scores] players length:', players.length);
 
     // 4) Determine cut line
     const rawCut = lbData.cut_line ?? lbData.cutLine ?? null;
-    console.log('🔍 [scores] rawCut:', rawCut);
     const cutActive = league.cutHandling === 'cap' && typeof rawCut === 'number' && rawCut > 0;
     const cutScore = cutActive ? rawCut : null;
-    console.log('🔍 [scores] cutActive, cutScore:', cutActive, cutScore);
+    console.log('🔍 [scores] cutScore:', cutScore);
 
-    // 5) Build scores array for each golfer
+    // 5) Build scores array using strokes and total_to_par
     const scores = golferIds.map(id => {
-      const player = players.find(p => {
-        const pid = p.player_id?.toString() ?? p.playerId?.toString();
+      const pl = players.find(p => {
+        const pid = (p.player_id ?? p.playerId)?.toString();
         return pid === id;
       });
-      console.log(`🔍 [scores] found player for ${id}:`, player);
+      console.log(`🔍 [scores] found player for ${id}:`, pl);
 
-      // Try various score fields
       let toPar = null;
-      if (player) {
-        toPar =
-          player.score_to_par ??
-          player.scoreToPar ??
-          player.current_round_score ??
-          player.currentRoundScore ??
-          player.score_to_par_display ??
-          null;
+      if (pl) {
+        // Use total_to_par (string) if available
+        if (pl.total_to_par != null) {
+          toPar = parseInt(pl.total_to_par, 10);
+        } else if (pl.totalToPar != null) {
+          toPar = parseInt(pl.totalToPar, 10);
+        }
       }
       console.log(`🔍 [scores] toPar for ${id}:`, toPar);
 
-      // Apply cut cap if needed
+      // Clamp at cut if needed
       let final = toPar;
       if (cutScore != null && toPar != null && toPar > cutScore) {
         final = cutScore;
@@ -73,17 +65,17 @@ router.get('/:leagueId', auth, async (req, res) => {
     });
     console.log('🔍 [scores] final scores:', scores);
 
-    // 6) Upsert into the Score collection
-    const bulkOps = scores.map(s => ({
+    // 6) Upsert into Score collection
+    const ops = scores.map(s => ({
       updateOne: {
         filter: { golfer: s.golfer },
         update: { $set: { strokes: s.strokes, updatedAt: new Date() } },
         upsert: true
       }
     }));
-    await Score.bulkWrite(bulkOps);
+    await Score.bulkWrite(ops);
 
-    // 7) Return the scores
+    // 7) Return scores
     res.json({ scores });
   } catch (err) {
     console.error('❌ [scores] ERROR:', err);
