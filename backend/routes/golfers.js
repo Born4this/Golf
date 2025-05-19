@@ -1,37 +1,54 @@
 // backend/routes/golfers.js
 import express from 'express';
-import { getLeaderboard } from '../services/sportContentApiFree.js';
+import axios from 'axios';
 
 const router = express.Router();
 
 // GET /api/golfers/current
-// Returns the next PGA event’s full field (golfer IDs + names)
+// Returns the next PGA event’s full field (golfer IDs + names) using Entry List
 router.get('/current', async (req, res) => {
   try {
-    // 1) Pull the cached leaderboard
-    const lbData = await getLeaderboard();
+    const { RAPIDAPI_KEY: KEY, RAPIDAPI_HOST: HOST } = process.env;
+    const headers = {
+      'X-RapidAPI-Key': KEY,
+      'X-RapidAPI-Host': HOST
+    };
 
-    // 2) Normalize the list of competitors (free-tier uses 'results', paid uses 'players')
-    const rawPlayers = Array.isArray(lbData.results)
-      ? lbData.results
-      : Array.isArray(lbData.players)
-      ? lbData.players
-      : [];
+    // 1) Find PGA Tour + current season
+    const toursRes = await axios.get(`https://${HOST}/tours`, { headers });
+    const tours = toursRes.data.results;
+    const pgaTour = tours.find(t =>
+      t.active === 1 && /pga tour/i.test(t.tour_name) && t.season_id === new Date().getFullYear()
+    );
+    if (!pgaTour) throw new Error('PGA Tour not found');
 
-    const field = rawPlayers.map(p => {
-      // ID may be 'playerId' or 'player_id'
-      const id = (p.playerId || p.player_id)?.toString();
-      // Name may be 'name' or first/last
-      const name =
-        p.name ||
-        (p.first_name && p.last_name && `${p.first_name} ${p.last_name}`) ||
-        'Unknown';
-      return { id, name };
-    });
+    // 2) Fetch fixtures and pick next event
+    const fixturesRes = await axios.get(
+      `https://${HOST}/fixtures/${pgaTour.tour_id}/${pgaTour.season_id}`,
+      { headers }
+    );
+    let fixtures = fixturesRes.data;
+    if (!Array.isArray(fixtures)) fixtures = fixtures.results || fixtures.data || [];
+    const nextEvent = fixtures.find(f => new Date(f.start_date) > new Date());
+    if (!nextEvent) throw new Error('No upcoming tournament found');
+    const tournamentId = nextEvent.fixture_id || nextEvent.id;
 
-    // 3) Optional: get tournament title
-    const tournamentName =
-      lbData.meta?.title || lbData.tournament?.name || 'Upcoming PGA Event';
+    // 3) Call Entry List endpoint for full field
+    const entryRes = await axios.get(
+      `https://${HOST}/entry_list/${tournamentId}`,
+      { headers }
+    );
+    const entryData = entryRes.data.results;
+    const rawList = entryData.entry_list_array || [];
+
+    // 4) Normalize field: player_id + first/last
+    const field = rawList.map(p => ({
+      id:   p.player_id.toString(),
+      name: `${p.first_name} ${p.last_name}`
+    }));
+
+    // 5) Tournament name from meta or fixture
+    const tournamentName = entryRes.data.meta?.title || nextEvent.name || 'PGA Event';
 
     return res.json({ tournament: tournamentName, field });
   } catch (err) {
