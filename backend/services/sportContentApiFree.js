@@ -9,45 +9,55 @@ const headers = {
   'X-RapidAPI-Host': HOST
 };
 
+// In‐memory cache: holds tournamentId, leaderboard payload, and last fetch timestamp
+const cache = {
+  tournamentId: null,
+  leaderboard: null,
+  lastFetch: 0
+};
+
+// Refresh interval for leaderboard data: 3 hours (in milliseconds)
+const REFRESH_INTERVAL = 3 * 60 * 60 * 1000;
+
 /**
- * Determine the appropriate fixture ID:
- * - On Monday until 11:59PM: use last finished event
- * - Otherwise: use next upcoming event
+ * Pick the fixture ID according to:
+ *  - Mondays (day=1): most recently finished tournament
+ *  - Otherwise: next upcoming tournament
  */
 async function pickFixtureId() {
-  // 1) Fetch tours
+  // 1) Fetch all tours
   const toursRes = await axios.get(`https://${HOST}/tours`, { headers });
-  const tours = toursRes.data.results || [];
+  const tours = toursRes.data.results ?? [];
   const pga = tours.find(t =>
-    t.active === 1 && /pga tour/i.test(t.tour_name) && t.season_id === new Date().getFullYear()
+    t.active === 1 &&
+    /pga tour/i.test(t.tour_name) &&
+    t.season_id === new Date().getFullYear()
   );
   if (!pga) throw new Error('PGA Tour not found');
 
-  // 2) Fetch fixtures
+  // 2) Fetch fixtures for that tour + season
   const fxRes = await axios.get(
     `https://${HOST}/fixtures/${pga.tour_id}/${pga.season_id}`,
     { headers }
   );
   let fixtures = fxRes.data;
-  if (!Array.isArray(fixtures)) fixtures = fixtures.results || fixtures.data || [];
+  if (!Array.isArray(fixtures)) fixtures = fixtures.results ?? fixtures.data ?? [];
   if (!Array.isArray(fixtures) || fixtures.length === 0) {
     throw new Error('No fixtures returned');
   }
 
   const now = new Date();
-  let chosen;
+  let chosen = null;
 
-  // Monday logic: get most recent past event
+  // Monday logic: pick the most recently finished event
   if (now.getDay() === 1) {
     const past = fixtures
       .filter(f => f.end_date && new Date(f.end_date) < now)
       .sort((a, b) => new Date(b.end_date) - new Date(a.end_date));
-    if (past.length) {
-      chosen = past[0];
-    }
+    if (past.length) chosen = past[0];
   }
 
-  // default: next upcoming event
+  // Default: pick the next upcoming event
   if (!chosen) {
     chosen = fixtures
       .filter(f => new Date(f.start_date) > now)
@@ -59,20 +69,32 @@ async function pickFixtureId() {
 }
 
 /**
- * Fetches leaderboard data for the current (or last) PGA event
- * Applies Monday logic to keep last week’s tournament on Mondays
+ * Returns the cached leaderboard (with Monday logic) if under TTL,
+ * otherwise re-fetches and updates the cache.
  */
 export async function getLeaderboard() {
-  // 1) Pick fixture ID dynamically each call
-  const fixtureId = await pickFixtureId();
+  const now = Date.now();
 
-  // 2) Fetch leaderboard
-  const lbRes = await axios.get(
-    `https://${HOST}/leaderboard/${fixtureId}`,
-    { headers }
-  );
-  const raw = lbRes.data;
+  // If cache is empty or expired, re-fetch
+  if (!cache.leaderboard || now - cache.lastFetch > REFRESH_INTERVAL) {
+    // Seed tournamentId on first run
+    if (!cache.tournamentId) {
+      cache.tournamentId = await pickFixtureId();
+    }
 
-  // 3) Normalize shape: prefer raw.results
-  return raw.results ?? raw;
+    // Fetch fresh leaderboard for that tournament
+    const lbRes = await axios.get(
+      `https://${HOST}/leaderboard/${cache.tournamentId}`,
+      { headers }
+    );
+    const raw = lbRes.data;
+
+    // Normalize into a plain object (unwrapping .results if present)
+    const normalized = raw.results ?? raw;
+
+    cache.leaderboard = normalized;
+    cache.lastFetch   = now;
+  }
+
+  return cache.leaderboard;
 }
