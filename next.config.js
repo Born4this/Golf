@@ -1,9 +1,8 @@
-// next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
 
-  // expose client API URL
+  // expose client API URL at build time
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
@@ -11,12 +10,12 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        // Proxy all /api/* calls to your backend
         source: '/api/:path*',
-        destination: 'https://api.fantasyfairway.com/api/:path*',
-      },
-    ];
-  },
-};
+        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/:path*`
+      }
+    ]
+  }
+}
 
-// <-- use CommonJS here
-module.exports = nextConfig;
+module.exports = nextConfig

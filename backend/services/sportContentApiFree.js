@@ -1,7 +1,7 @@
 // backend/services/sportContentApiFree.js
 import axios from 'axios';
 
-const HOST = process.env.RAPIDAPI_HOST;   // golf-leaderboard-data.p.rapidapi.com
+const HOST = process.env.RAPIDAPI_HOST;   // e.g. golf-leaderboard-data.p.rapidapi.com
 const KEY  = process.env.RAPIDAPI_KEY;
 
 const headers = {
@@ -32,6 +32,9 @@ export async function getLeaderboard() {
         { headers }
       );
       const tours = toursRes.data.results;
+      if (!Array.isArray(tours)) {
+        throw new Error('Unexpected /tours response shape');
+      }
 
       // b) Pick the active PGA Tour for the current year
       const pga = tours.find(t =>
@@ -46,7 +49,6 @@ export async function getLeaderboard() {
         `https://${HOST}/fixtures/${pga.tour_id}/${pga.season_id}`,
         { headers }
       );
-      // Fixtures may be an array or under data.results
       let fixtures = fixturesRes.data;
       if (!Array.isArray(fixtures)) {
         fixtures = fixtures.results ?? fixtures.data ?? fixtures;
@@ -70,7 +72,12 @@ export async function getLeaderboard() {
       `https://${HOST}/leaderboard/${cache.tournamentId}`,
       { headers }
     );
-    cache.leaderboard = lbRes.data;
+    const raw = lbRes.data;
+
+    // normalize shape: pull out .results if present
+    const normalized = raw.results ?? raw;
+
+    cache.leaderboard = normalized;
     cache.lastFetch   = now;
   }
 
