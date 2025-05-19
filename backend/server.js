@@ -9,7 +9,6 @@ import mongoSanitize from 'express-mongo-sanitize';
 import hpp from 'hpp';
 import { errors as celebrateErrors } from 'celebrate';
 
-// Load environment variables
 dotenv.config();
 
 import scoresRoutes from './routes/scores.js';

@@ -14,7 +14,7 @@ router.get('/current', async (req, res) => {
       'X-RapidAPI-Host': HOST
     };
 
-    // 1) Find PGA Tour + current season
+    // 1) Find PGA Tour + current szn
     const toursRes = await axios.get(`https://${HOST}/tours`, { headers });
     const tours = toursRes.data.results;
     const pgaTour = tours.find(t =>
