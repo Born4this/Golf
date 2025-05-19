@@ -5,7 +5,7 @@ import axios from 'axios';
 const router = express.Router();
 
 // GET /api/golfers/current
-// Returns the next PGA event’s full field (golfer IDs + names) using Entry List
+// Returns the full PGA event field (golfer IDs + names) using Entry List
 router.get('/current', async (req, res) => {
   try {
     const { RAPIDAPI_KEY: KEY, RAPIDAPI_HOST: HOST } = process.env;
@@ -34,7 +34,7 @@ router.get('/current', async (req, res) => {
     const fixtureId = nextEvent.fixture_id || nextEvent.id;
     console.log('🥎 [golfers] fixtureId:', fixtureId);
 
-    // 3) Fetch leaderboard to get correct tournament ID for entry list
+    // 3) Fetch leaderboard to get tournament ID for Entry List
     const lbRes = await axios.get(`https://${HOST}/leaderboard/${fixtureId}`, { headers });
     const tournamentId = lbRes.data.results?.tournament?.id;
     console.log('🥎 [golfers] tournamentId:', tournamentId);
@@ -42,7 +42,13 @@ router.get('/current', async (req, res) => {
 
     // 4) Call Entry List endpoint for full field
     const entryRes = await axios.get(`https://${HOST}/entry_list/${tournamentId}`, { headers });
-    const rawList = entryRes.data.results.entry_list_array || [];
+    const results = entryRes.data.results;
+    // Entry list may be under 'entry_list' or 'entry_list_array'
+    const rawList = Array.isArray(results.entry_list)
+      ? results.entry_list
+      : Array.isArray(results.entry_list_array)
+      ? results.entry_list_array
+      : [];
 
     // 5) Normalize field: player_id + first/last
     const field = rawList.map(p => ({
@@ -50,7 +56,7 @@ router.get('/current', async (req, res) => {
       name: `${p.first_name} ${p.last_name}`
     }));
 
-    // 6) Tournament name from meta or nextEvent
+    // 6) Tournament name
     const tournamentName = entryRes.data.meta?.title || nextEvent.name || 'PGA Event';
 
     return res.json({ tournament: tournamentName, field });
