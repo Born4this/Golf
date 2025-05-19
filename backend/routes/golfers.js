@@ -5,7 +5,7 @@ import axios from 'axios';
 const router = express.Router();
 
 // GET /api/golfers/current
-// Returns the full PGA event field (golfer IDs + names) using Entry List
+// Returns the full PGA event field (golfer IDs + names) with Entry List
 router.get('/current', async (req, res) => {
   try {
     const { RAPIDAPI_KEY: KEY, RAPIDAPI_HOST: HOST } = process.env;
