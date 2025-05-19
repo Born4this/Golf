@@ -7,9 +7,20 @@ import Score from '../models/Score.js';
 
 const router = express.Router();
 
+// Short‐term cache for scores response
+let lastScores = null;
+let lastScoresFetch = 0;
+const SCORES_TTL = 60 * 1000; // 1 minute
+
 // GET /api/scores/:leagueId
 // Returns current scores (to-par) for each golfer in the league
 router.get('/:leagueId', auth, async (req, res) => {
+  const now = Date.now();
+  if (lastScores && now - lastScoresFetch < SCORES_TTL) {
+    console.log('🔍 [scores] returning cached scores');
+    return res.json({ scores: lastScores });
+  }
+
   try {
     // 1) Load league and draft picks
     const league = await League.findById(req.params.leagueId).lean();
@@ -37,7 +48,7 @@ router.get('/:leagueId', auth, async (req, res) => {
     const cutScore = cutActive ? rawCut : null;
     console.log('🔍 [scores] cutScore:', cutScore);
 
-    // 5) Build scores array using strokes and total_to_par
+    // 5) Build scores array using total_to_par
     const scores = golferIds.map(id => {
       const pl = players.find(p => {
         const pid = (p.player_id ?? p.playerId)?.toString();
@@ -47,7 +58,6 @@ router.get('/:leagueId', auth, async (req, res) => {
 
       let toPar = null;
       if (pl) {
-        // Use total_to_par (string) if available
         if (pl.total_to_par != null) {
           toPar = parseInt(pl.total_to_par, 10);
         } else if (pl.totalToPar != null) {
@@ -75,7 +85,9 @@ router.get('/:leagueId', auth, async (req, res) => {
     }));
     await Score.bulkWrite(ops);
 
-    // 7) Return scores
+    // cache and return
+    lastScores = scores;
+    lastScoresFetch = now;
     res.json({ scores });
   } catch (err) {
     console.error('❌ [scores] ERROR:', err);

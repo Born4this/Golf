@@ -50,11 +50,36 @@ export default function Leaderboard() {
 
   useEffect(() => {
     if (!leagueId) return;
-    // Initial load
+    let pollId;
+
+    const startPolling = () => {
+      if (!pollId) {
+        pollId = setInterval(refreshLeaderboard, 2 * 60 * 1000);
+      }
+    };
+
+    const stopPolling = () => {
+      clearInterval(pollId);
+      pollId = null;
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    // Initial load and start polling
     refreshLeaderboard();
-    // Refresh every 2 min
-    const intervalId = setInterval(refreshLeaderboard, 2 * 60 * 1000);
-    return () => clearInterval(intervalId);
+    document.addEventListener('visibilitychange', handleVisibility);
+    startPolling();
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      stopPolling();
+    };
   }, [leagueId]);
 
   const toggle = (uid) => setOpenUser(openUser === uid ? null : uid);

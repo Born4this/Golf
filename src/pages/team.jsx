@@ -1,15 +1,16 @@
 // src/pages/team.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 
 export default function Team() {
   const router = useRouter();
   const { leagueId } = router.query;
-  const [user, setUser]         = useState('');
-  const [team, setTeam]         = useState([]);
-  const [error, setError]       = useState('');
+  const [user, setUser]           = useState('');
+  const [team, setTeam]           = useState([]);
+  const [error, setError]         = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const pollRef = useRef(null);
 
   const token = typeof window !== 'undefined' && localStorage.getItem('token');
   const headers = {
@@ -17,7 +18,7 @@ export default function Team() {
     Authorization: `Bearer ${token}`,
   };
 
-  // find users teams 
+  // fetch the user's team
   const fetchTeam = async () => {
     if (!leagueId) return;
     try {
@@ -32,7 +33,7 @@ export default function Team() {
     }
   };
 
-  // Sync scores then reload
+  // sync scores then reload team
   const refreshScores = async () => {
     if (!leagueId) return;
     setRefreshing(true);
@@ -50,9 +51,40 @@ export default function Team() {
 
   useEffect(() => {
     if (!leagueId) return;
-    refreshScores();
-    const intervalId = setInterval(refreshScores, 2 * 60 * 1000);
-    return () => clearInterval(intervalId);
+
+    // start polling every 2 minutes
+    const startPolling = () => {
+      if (pollRef.current == null) {
+        // initial load
+        refreshScores();
+        pollRef.current = setInterval(refreshScores, 2 * 60 * 1000);
+      }
+    };
+
+    const stopPolling = () => {
+      if (pollRef.current != null) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // kick off polling when component mounts
+    startPolling();
+
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [leagueId]);
 
   return (
