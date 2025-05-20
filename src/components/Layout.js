@@ -18,6 +18,12 @@ export default function Layout({ children }) {
       router.pathname.startsWith(path) || router.asPath.startsWith(path)
     );
 
+  /* Pages that need a bit of breathing-room above the card */
+  const needsTopSpacing =
+    ['/league-selector', '/draft', '/team', '/leaderboard'].some(path =>
+      router.pathname.startsWith(path) || router.asPath.startsWith(path)
+    );
+
   /* Fetch league name only if we plan to show it */
   useEffect(() => {
     if (!leagueId || hideLeagueHeader) return;
