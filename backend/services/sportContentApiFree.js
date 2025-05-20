@@ -21,7 +21,7 @@ const REFRESH_INTERVAL = 3 * 60 * 60 * 1000;
 
 /**
  * Pick the fixture ID according to:
- *  - Mondays (day=1): most recently finished tournament
+ *  - Mondays (in Eastern time): most recently finished tournament
  *  - Otherwise: next upcoming tournament
  */
 async function pickFixtureId() {
@@ -46,13 +46,15 @@ async function pickFixtureId() {
     throw new Error('No fixtures returned');
   }
 
-  const now = new Date();
+  // compute "now" in Eastern time by subtracting 4h from UTC
+  const nowUTC      = Date.now();
+  const nowEastern  = new Date(nowUTC - 4 * 60 * 60 * 1000);
   let chosen = null;
 
   // Monday logic: pick the most recently finished event
-  if (now.getDay() === 1) {
+  if (nowEastern.getDay() === 1) {
     const past = fixtures
-      .filter(f => f.end_date && new Date(f.end_date) < now)
+      .filter(f => f.end_date && new Date(f.end_date) < nowEastern)
       .sort((a, b) => new Date(b.end_date) - new Date(a.end_date));
     if (past.length) chosen = past[0];
   }
@@ -60,7 +62,7 @@ async function pickFixtureId() {
   // Default: pick the next upcoming event
   if (!chosen) {
     chosen = fixtures
-      .filter(f => new Date(f.start_date) > now)
+      .filter(f => new Date(f.start_date) > nowEastern)
       .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))[0];
   }
 
@@ -69,7 +71,7 @@ async function pickFixtureId() {
 }
 
 /**
- * Returns the cached leaderboard (with Monday logic) if under TTL,
+ * Returns the cached leaderboard (with Monday/Eastern logic) if under TTL,
  * otherwise re-fetches and updates the cache.
  */
 export async function getLeaderboard() {
