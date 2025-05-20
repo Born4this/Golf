@@ -4,12 +4,16 @@ import axios from 'axios';
 const HOST = process.env.RAPIDAPI_HOST;   // e.g. golf-leaderboard-data.p.rapidapi.com
 const KEY  = process.env.RAPIDAPI_KEY;
 
+if (!HOST || !KEY) {
+  throw new Error('RAPIDAPI_HOST and RAPIDAPI_KEY must be set in environment');
+}
+
 const headers = {
   'X-RapidAPI-Key': KEY,
   'X-RapidAPI-Host': HOST
 };
 
-// In-memory cache: holds tournamentId, leaderboard payload, and last fetch timestamp
+// In‐memory cache: holds tournamentId, leaderboard payload, and last fetch timestamp
 const cache = {
   tournamentId: null,
   leaderboard: null,
@@ -27,8 +31,8 @@ const REFRESH_INTERVAL = 3 * 60 * 60 * 1000;
 async function pickFixtureId() {
   // 1) Fetch all tours
   const toursRes = await axios.get(`https://${HOST}/tours`, { headers });
-  const tours    = toursRes.data.results ?? [];
-  const pga      = tours.find(t =>
+  const tours = toursRes.data.results ?? [];
+  const pga = tours.find(t =>
     t.active === 1 &&
     /pga tour/i.test(t.tour_name) &&
     t.season_id === new Date().getFullYear()
@@ -75,10 +79,12 @@ async function pickFixtureId() {
 export async function getLeaderboard() {
   const now = Date.now();
 
-  // If cache is empty or expired, re-fetch everything
+  // If cache is empty or expired, re-fetch
   if (!cache.leaderboard || now - cache.lastFetch > REFRESH_INTERVAL) {
-    // Always pick the current fixture (handles new tournaments)
-    cache.tournamentId = await pickFixtureId();
+    // Seed tournamentId on first run
+    if (!cache.tournamentId) {
+      cache.tournamentId = await pickFixtureId();
+    }
 
     // Fetch fresh leaderboard for that tournament
     const lbRes = await axios.get(
@@ -88,7 +94,9 @@ export async function getLeaderboard() {
     const raw = lbRes.data;
 
     // Normalize into a plain object (unwrapping .results if present)
-    cache.leaderboard = raw.results ?? raw;
+    const normalized = raw.results ?? raw;
+
+    cache.leaderboard = normalized;
     cache.lastFetch   = now;
   }
 
