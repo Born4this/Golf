@@ -211,23 +211,23 @@ export default function Draft() {
   return (
     <Layout>
       <div className="bg-white rounded-xl shadow-lg p-6 max-w-lg mx-auto space-y-6">
-        {/* SLEEK HEADER */}
-        <div className="flex items-center justify-between flex-wrap gap-3 border border-gray-200 rounded-lg px-4 py-3 shadow-sm bg-white/70 backdrop-blur">
-          <h1 className="text-lg font-semibold tracking-wide text-green-700 whitespace-nowrap">
+        {/* SLEEK HEADER — vertical / centered */}
+        <div className="flex flex-col items-center gap-3 border border-gray-200 rounded-lg px-4 py-4 shadow-sm bg-white/70 backdrop-blur">
+          <h1 className="text-xl font-semibold tracking-wide text-green-700 text-center">
             Draft Room
           </h1>
 
           {!isComplete ? (
             <button
               onClick={copyLink}
-              className="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-xs font-semibold transition whitespace-nowrap"
+              className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-sm font-semibold transition"
             >
-              {joining ? 'Joining…' : 'Invite'}
+              {joining ? 'Joining…' : 'Copy Invite Link'}
             </button>
           ) : (
             <button
               onClick={() => router.push(`/team?leagueId=${leagueId}`)}
-              className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-sm font-semibold transition whitespace-nowrap"
+              className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-sm font-semibold transition"
             >
               View My Team
             </button>
