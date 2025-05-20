@@ -213,21 +213,21 @@ export default function Draft() {
       <div className="bg-white rounded-xl shadow-lg p-6 max-w-lg mx-auto space-y-6">
         {/* SLEEK HEADER — vertical / centered */}
         <div className="flex flex-col items-center gap-3 border border-gray-200 rounded-lg px-4 py-4 shadow-sm bg-white/70 backdrop-blur">
-          <h1 className="text-xl font-semibold tracking-wide text-green-700 text-center">
+          <h1 className="text-2xl font-semibold tracking-wide text-green-700 text-center">
             Draft Room
           </h1>
 
           {!isComplete ? (
             <button
               onClick={copyLink}
-              className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-sm font-semibold transition"
+              className="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-full text-xs font-semibold transition"
             >
               {joining ? 'Joining…' : 'Copy Invite Link'}
             </button>
           ) : (
             <button
               onClick={() => router.push(`/team?leagueId=${leagueId}`)}
-              className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-sm font-semibold transition"
+              className="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-full text-xs font-semibold transition"
             >
               View My Team
             </button>
