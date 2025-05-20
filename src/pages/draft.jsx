@@ -212,24 +212,24 @@ export default function Draft() {
     <Layout>
       <div className="bg-white rounded-xl shadow-lg p-6 max-w-lg mx-auto space-y-6">
         {/* SLEEK HEADER */}
-        <div className="flex items-center justify-between gap-4 border border-gray-200 rounded-lg px-4 py-3 shadow-sm bg-white/70 backdrop-blur">
-          <h1 className="text-xl font-semibold tracking-wide text-green-700">
+        <div className="flex items-center justify-between flex-wrap gap-3 border border-gray-200 rounded-lg px-4 py-3 shadow-sm bg-white/70 backdrop-blur">
+          <h1 className="text-lg font-semibold tracking-wide text-green-700 whitespace-nowrap">
             Draft Room
           </h1>
 
           {!isComplete ? (
             <button
               onClick={copyLink}
-              className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-xs font-semibold transition"
+              className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-xs font-semibold transition whitespace-nowrap"
             >
-              {joining ? 'Joining…' : 'Copy&nbsp;Invite&nbsp;Link'}
+              {joining ? 'Joining…' : 'Copy Invite Link'}
             </button>
           ) : (
             <button
               onClick={() => router.push(`/team?leagueId=${leagueId}`)}
-              className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-sm font-semibold transition"
+              className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full text-sm font-semibold transition whitespace-nowrap"
             >
-              View&nbsp;My&nbsp;Team
+              View My Team
             </button>
           )}
         </div>
