@@ -3,17 +3,18 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 
 export default function Layout({ children }) {
-  const router          = useRouter();
-  const { leagueId }    = router.query;
+  const router = useRouter();
+  const { leagueId } = router.query;
   const [league, setLeague] = useState(null);
 
-  /* Detect Draft page so we hide both background & header there */
-  const isDraftPage =
-    router.pathname === '/draft' || router.asPath.startsWith('/draft');
+  /* Pages where both the background and league header should be hidden */
+  const hideHeader = ['/draft', '/team', '/leaderboard'].some(path =>
+    router.pathname.startsWith(path) || router.asPath.startsWith(path)
+  );
 
-  /* Load league name for the header on non-draft pages */
+  /* Load league name for the header only on pages that show it */
   useEffect(() => {
-    if (!leagueId || isDraftPage) return;          // ✨ skip on /draft
+    if (!leagueId || hideHeader) return;
 
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -27,12 +28,12 @@ export default function Layout({ children }) {
       .then(res => (res.ok ? res.json() : Promise.reject()))
       .then(data => setLeague(data.league))
       .catch(() => {});
-  }, [leagueId, isDraftPage]);
+  }, [leagueId, hideHeader]);
 
   return (
     <>
-      {/* Background only on non-draft pages */}
-      {!isDraftPage && (
+      {/* Background only on pages that show the header */}
+      {!hideHeader && (
         <div
           className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/images/bg.jpg')" }}
@@ -40,8 +41,8 @@ export default function Layout({ children }) {
       )}
 
       <div className="relative min-h-screen z-10">
-        {/* Header hidden on /draft */}
-        {!isDraftPage && league && (
+        {/* Header hidden on /draft, /team, /leaderboard */}
+        {!hideHeader && league && (
           <header className="max-w-5xl mx-auto px-4 py-6">
             <h1 className="text-3xl font-bold text-center text-green-600">
               {league.name}
