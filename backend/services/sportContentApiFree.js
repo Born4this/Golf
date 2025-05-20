@@ -1,101 +1,96 @@
-// src/pages/draft.jsx
-import React, { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/router';
-import Layout from '../components/Layout';
+// backend/services/sportContentApiFree.js
+import axios from 'axios';
 
-export default function Draft() {
-  const router = useRouter();
-  const leagueId = router.query.leagueId;
+const HOST = process.env.RAPIDAPI_HOST;   // e.g. golf-leaderboard-data.p.rapidapi.com
+const KEY  = process.env.RAPIDAPI_KEY;
 
-  const [golfers, setGolfers] = useState([]);            // start as empty array
-  const [loadingGolfers, setLoadingGolfers] = useState(true);
-  const [golferError, setGolferError] = useState(null);
+const headers = {
+  'X-RapidAPI-Key': KEY,
+  'X-RapidAPI-Host': HOST
+};
 
-  // other state: picks, draftList, etc.
+// In-memory cache: holds tournamentId, leaderboard payload, and last fetch timestamp
+const cache = {
+  tournamentId: null,
+  leaderboard: null,
+  lastFetch: 0
+};
 
-  // fetch the golfer pool once
-  useEffect(() => {
-    if (!leagueId) return;
-    setLoadingGolfers(true);
-    fetch('/api/golfers/current')
-      .then(res => {
-        if (!res.ok) throw new Error(`Status ${res.status}`);
-        return res.json();
-      })
-      .then(data => {
-        // data.field is array of { id, name }
-        setGolfers(data.field || []);
-        setGolferError(null);
-      })
-      .catch(err => {
-        console.error('Failed to load golfers:', err);
-        setGolferError('Could not load golfer list. Please try again later.');
-      })
-      .finally(() => setLoadingGolfers(false));
-  }, [leagueId]);
+// Refresh interval for leaderboard data: 3 hours (in milliseconds)
+const REFRESH_INTERVAL = 3 * 60 * 60 * 1000;
 
-  // memoize your filtered list so you’re not calling filter on undefined
-  const filteredGolfers = useMemo(() => {
-    return golfers.filter(g => {
-      // your filter logic, e.g.
-      return g.name.toLowerCase().includes(searchTerm.toLowerCase());
-    });
-  }, [golfers, searchTerm]);
-
-  // … your existing draft logic …
-
-  if (loadingGolfers) {
-    return (
-      <Layout>
-        <p className="text-center mt-8">Loading golfers…</p>
-      </Layout>
-    );
-  }
-
-  if (golferError) {
-    return (
-      <Layout>
-        <p className="text-center mt-8 text-red-500">{golferError}</p>
-      </Layout>
-    );
-  }
-
-  return (
-    <Layout>
-      <div className="max-w-md mx-auto mt-8 bg-white shadow-lg rounded-lg overflow-hidden">
-        {/* … header, invite link, etc … */}
-
-        {/* Search */}
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          placeholder="Search golfers…"
-          className="w-full px-4 py-2 border rounded mb-4"
-        />
-
-        {/* Available Golfers */}
-        <h2 className="font-semibold">Available Golfers</h2>
-        {filteredGolfers.length === 0 ? (
-          <p className="text-sm text-gray-500">No golfers match your search.</p>
-        ) : (
-          <ul className="divide-y">
-            {filteredGolfers.map(g => (
-              <li key={g.id} className="py-2 flex justify-between">
-                <span>{g.name}</span>
-                <button
-                  onClick={() => pickGolfer(g.id)}
-                  className="text-blue-600 hover:underline"
-                >
-                  Pick
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {/* … rest of draft UI … */}
-      </div>
-    </Layout>
+/**
+ * Pick the fixture ID according to:
+ *  - Mondays (day=1): most recently finished tournament
+ *  - Otherwise: next upcoming tournament
+ */
+async function pickFixtureId() {
+  // 1) Fetch all tours
+  const toursRes = await axios.get(`https://${HOST}/tours`, { headers });
+  const tours    = toursRes.data.results ?? [];
+  const pga      = tours.find(t =>
+    t.active === 1 &&
+    /pga tour/i.test(t.tour_name) &&
+    t.season_id === new Date().getFullYear()
   );
+  if (!pga) throw new Error('PGA Tour not found');
+
+  // 2) Fetch fixtures for that tour + season
+  const fxRes = await axios.get(
+    `https://${HOST}/fixtures/${pga.tour_id}/${pga.season_id}`,
+    { headers }
+  );
+  let fixtures = fxRes.data;
+  if (!Array.isArray(fixtures)) fixtures = fixtures.results ?? fixtures.data ?? [];
+  if (!Array.isArray(fixtures) || fixtures.length === 0) {
+    throw new Error('No fixtures returned');
+  }
+
+  const now = new Date();
+  let chosen = null;
+
+  // Monday logic: pick the most recently finished event
+  if (now.getDay() === 1) {
+    const past = fixtures
+      .filter(f => f.end_date && new Date(f.end_date) < now)
+      .sort((a, b) => new Date(b.end_date) - new Date(a.end_date));
+    if (past.length) chosen = past[0];
+  }
+
+  // Default: pick the next upcoming event
+  if (!chosen) {
+    chosen = fixtures
+      .filter(f => new Date(f.start_date) > now)
+      .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))[0];
+  }
+
+  if (!chosen) throw new Error('No suitable tournament found');
+  return chosen.fixture_id ?? chosen.id;
+}
+
+/**
+ * Returns the cached leaderboard (with Monday logic) if under TTL,
+ * otherwise re-fetches and updates the cache.
+ */
+export async function getLeaderboard() {
+  const now = Date.now();
+
+  // If cache is empty or expired, re-fetch everything
+  if (!cache.leaderboard || now - cache.lastFetch > REFRESH_INTERVAL) {
+    // Always pick the current fixture (handles new tournaments)
+    cache.tournamentId = await pickFixtureId();
+
+    // Fetch fresh leaderboard for that tournament
+    const lbRes = await axios.get(
+      `https://${HOST}/leaderboard/${cache.tournamentId}`,
+      { headers }
+    );
+    const raw = lbRes.data;
+
+    // Normalize into a plain object (unwrapping .results if present)
+    cache.leaderboard = raw.results ?? raw;
+    cache.lastFetch   = now;
+  }
+
+  return cache.leaderboard;
 }
