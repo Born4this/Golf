@@ -124,7 +124,7 @@ export default function LeagueSelector() {
               placeholder="Enter league name"
               value={leagueName}
               onChange={e => setLeagueName(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
           </div>
           <div>
@@ -134,7 +134,7 @@ export default function LeagueSelector() {
             <select
               value={teamCount}
               onChange={e => setTeamCount(Number(e.target.value))}
-              className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
             >
               {[1, 2, 3, 4, 5, 6].map(n => (
                 <option key={n} value={n}>
@@ -150,7 +150,7 @@ export default function LeagueSelector() {
             <select
               value={cutHandling}
               onChange={e => setCutHandling(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
             >
               <option value="standard">Standard Scoring</option>
               <option value="cap">Cap at Cut Score</option>
@@ -172,7 +172,7 @@ export default function LeagueSelector() {
             placeholder="League ID or Code"
             value={joinId}
             onChange={e => setJoinId(e.target.value)}
-            className="flex-grow px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-400"
+            className="flex-grow px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
           <button
             type="submit"
@@ -206,7 +206,7 @@ export default function LeagueSelector() {
               <div className="flex space-x-2">
                 <button
                   onClick={() => router.push(`/draft?leagueId=${lg._id}`)}
-                  className="flex-1 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-center"
+                  className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-center"
                 >
                   Draft
                 </button>

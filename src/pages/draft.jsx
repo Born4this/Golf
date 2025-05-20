@@ -207,14 +207,14 @@ export default function Draft() {
           {!isComplete ? (
             <button
               onClick={copyLink}
-              className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-semibold transition"
+              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-semibold text-sm transition"
             >
               {joining ? 'Joining…' : 'Copy Invite Link'}
             </button>
           ) : (
             <button
               onClick={() => router.push(`/team?leagueId=${leagueId}`)}
-              className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-semibold transition"
+              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-semibold text-sm transition"
             >
               View My Team
             </button>
