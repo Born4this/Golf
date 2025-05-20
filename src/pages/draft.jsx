@@ -64,11 +64,30 @@ export default function Draft() {
   );
 
   /* --------------------------- actions ----------------------------- */
-  const copyLink = () => {
+  const copyLink = async () => {
     const url = `${window.location.origin}/auth?redirect=${encodeURIComponent(
       `/draft?leagueId=${leagueId}`
     )}`;
-    navigator.clipboard.writeText(url);
+
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('Invite link copied!');
+    } catch {
+      // fallback for browsers / iframes without Clipboard API permission
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.position = 'fixed';   // avoid scrolling to bottom
+      ta.style.top = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        alert('Invite link copied!');
+      } catch {
+        alert('Could not copy link—please copy it manually.');
+      }
+      document.body.removeChild(ta);
+    }
   };
 
   const fetchLeague = async () => {
@@ -271,7 +290,7 @@ export default function Draft() {
         <div>
           <h2 className="text-med font-semibold mb-2">Available Golfers</h2>
 
-          {/* SEARCH (now slimmer & positioned under the heading) */}
+          {/* SEARCH */}
           <input
             type="text"
             placeholder="Search golfers…"
