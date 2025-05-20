@@ -4,10 +4,6 @@ import axios from 'axios';
 const HOST = process.env.RAPIDAPI_HOST;   // e.g. golf-leaderboard-data.p.rapidapi.com
 const KEY  = process.env.RAPIDAPI_KEY;
 
-if (!HOST || !KEY) {
-  throw new Error('RAPIDAPI_HOST and RAPIDAPI_KEY must be set in environment');
-}
-
 const headers = {
   'X-RapidAPI-Key': KEY,
   'X-RapidAPI-Host': HOST
