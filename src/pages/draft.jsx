@@ -200,8 +200,8 @@ export default function Draft() {
     <Layout>
       <div className="bg-white rounded-xl shadow-lg p-6 max-w-lg mx-auto space-y-6">
         {/* HEADER */}
-        <div className="flex flex-col items-center py-4 bg-gradient-to-r from-green-500 to-green-300 rounded-lg">
-          <h1 className="text-2xl font-bold text-white mb-3">Draft Room</h1>
+        <div className="flex flex-col items-center py-4 bg-gradient-to-r from-green-500 to-green-300 rounded-med">
+          <h1 className="text-xl font-bold text-white mb-3">Draft Room</h1>
 
           {/* single button slot */}
           {!isComplete ? (
