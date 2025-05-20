@@ -1,169 +1,159 @@
 // src/pages/draft.jsx
-import React, { useEffect, useState, useMemo, useRef } from 'react'
-import { useRouter } from 'next/router'
-import Layout from '../components/Layout'
+import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { useRouter } from 'next/router';
+import Layout from '../components/Layout';
 
 export default function Draft() {
-  const router = useRouter()
-  const { leagueId } = router.query
+  const router = useRouter();
+  const { leagueId } = router.query;
 
-  // PGA field
-  const [field, setField] = useState([])
-  const [loadingField, setLoadingField] = useState(true)
-  const [fieldError, setFieldError] = useState('')
+  /* ----------------------------- state ----------------------------- */
+  const [field,           setField]           = useState([]);
+  const [loadingField,    setLoadingField]    = useState(true);
+  const [fieldError,      setFieldError]      = useState('');
 
-  // Draft state
-  const [picks, setPicks] = useState([])
-  const [order, setOrder] = useState([])
-  const [leagueDetails, setLeagueDetails] = useState(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [isMyTurn, setIsMyTurn] = useState(false)
-  const [joining, setJoining] = useState(false)
-  const [loadingPick, setLoadingPick] = useState(false)
-  const [error, setError] = useState('')
+  const [picks,           setPicks]           = useState([]);
+  const [order,           setOrder]           = useState([]);
+  const [leagueDetails,   setLeagueDetails]   = useState(null);
+  const [searchTerm,      setSearchTerm]      = useState('');
+  const [isMyTurn,        setIsMyTurn]        = useState(false);
+  const [joining,         setJoining]         = useState(false);
+  const [loadingPick,     setLoadingPick]     = useState(false);
+  const [error,           setError]           = useState('');
 
-  // Interval ref so we can pause/resume polling when the tab is hidden
-  const pollRef = useRef(null)
+  const pollRef = useRef(null);
 
-  const token = typeof window !== 'undefined' && localStorage.getItem('token')
-  const userId = typeof window !== 'undefined' && localStorage.getItem('userId')
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL
-  const headers = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
-  }
+  const token   = typeof window !== 'undefined' && localStorage.getItem('token');
+  const userId  = typeof window !== 'undefined' && localStorage.getItem('userId');
+  const apiUrl  = process.env.NEXT_PUBLIC_API_URL;
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
-  const leagueReady =
-    leagueDetails?.members?.length >= leagueDetails?.teamCount
+  const leagueReady = leagueDetails?.members?.length >= leagueDetails?.teamCount;
+  const isComplete  = picks.length >= (order.length || 0);
 
+  /* ------------------------- derived helpers ----------------------- */
   const userMap = useMemo(() => {
     return (leagueDetails?.members || []).reduce((map, u) => {
-      const id = (u._id || u).toString()
-      map[id] = u.username || u
-      return map
-    }, {})
-  }, [leagueDetails])
+      map[(u._id || u).toString()] = u.username || u;
+      return map;
+    }, {});
+  }, [leagueDetails]);
 
   const upcoming = useMemo(() => {
-    if (!order.length) return []
-    const start = picks.length
-    const count = leagueDetails?.teamCount || 0
-    return order.slice(start, start + count)
-  }, [order, picks, leagueDetails])
+    if (!order.length) return [];
+    const start = picks.length;
+    const cnt   = leagueDetails?.teamCount || 0;
+    return order.slice(start, start + cnt);
+  }, [order, picks, leagueDetails]);
 
   const available = useMemo(() => {
-    const picked = new Set(picks.map(p => p.golfer))
-    return field.filter(g => !picked.has(g.id))
-  }, [field, picks])
+    const picked = new Set(picks.map(p => p.golfer));
+    return field.filter(g => !picked.has(g.id));
+  }, [field, picks]);
 
   const filtered = useMemo(() => {
-    if (!searchTerm) return available
-    return available.filter(g =>
-      g.name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  }, [available, searchTerm])
+    return searchTerm
+      ? available.filter(g =>
+          g.name.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      : available;
+  }, [available, searchTerm]);
 
+  /* --------------------------- actions ----------------------------- */
   const copyLink = () => {
-    const inviteUrl = `${window.location.origin}/auth?redirect=${encodeURIComponent(
+    const url = `${window.location.origin}/auth?redirect=${encodeURIComponent(
       `/draft?leagueId=${leagueId}`
-    )}`
-    navigator.clipboard.writeText(inviteUrl)
-  }
+    )}`;
+    navigator.clipboard.writeText(url);
+  };
 
-  // Fetch league details
   const fetchLeague = async () => {
     try {
-      const res = await fetch(`${apiUrl}/api/leagues/${leagueId}`, { headers })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.msg || 'Failed to fetch league')
-      setLeagueDetails(data.league)
+      const res  = await fetch(`${apiUrl}/api/leagues/${leagueId}`, { headers });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.msg || 'Fetch league failed');
+      setLeagueDetails(data.league);
     } catch (err) {
-      setError(err.message)
+      setError(err.message);
     }
-  }
+  };
 
-  // Fetch draft picks + order
   const fetchDraft = async () => {
     try {
-      const res = await fetch(
-        `${apiUrl}/api/leagues/${leagueId}/draft-list`,
-        { headers }
-      )
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.msg || 'Failed to fetch draft')
-      setPicks(data.picks)
-      setOrder(data.draftOrder)
-      setIsMyTurn(data.draftOrder[data.picks.length] === userId)
-
-      // if leagueDetails hasn't got draftOrder yet, refresh it
-      if (data.draftOrder.length && !leagueDetails?.draftOrder?.length) {
-        fetchLeague()
-      }
+      const res  = await fetch(`${apiUrl}/api/leagues/${leagueId}/draft-list`, { headers });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.msg || 'Fetch draft failed');
+      setPicks(data.picks);
+      setOrder(data.draftOrder);
+      setIsMyTurn(data.draftOrder[data.picks.length] === userId);
+      if (data.draftOrder.length && !leagueDetails?.draftOrder?.length) fetchLeague();
     } catch (err) {
-      setError(err.message)
+      setError(err.message);
     }
-  }
+  };
 
-  // Fetch PGA field
   const fetchField = async () => {
-    setLoadingField(true)
+    setLoadingField(true);
     try {
-      const res = await fetch(`${apiUrl}/api/golfers/current`)
-      if (!res.ok) throw new Error(`Status ${res.status}`)
-      const data = await res.json()
-      setField(data.field || [])
-      setFieldError('')
+      const res  = await fetch(`${apiUrl}/api/golfers/current`);
+      const data = await res.json();
+      if (!res.ok) throw new Error('Could not load golfer list.');
+      setField(data.field || []);
     } catch (err) {
-      console.error('Failed to fetch golfers', err)
-      setFieldError('Could not load golfer list.')
+      setFieldError(err.message);
     } finally {
-      setLoadingField(false)
+      setLoadingField(false);
     }
-  }
+  };
 
-  // Effect to load initial data & manage polling with Page Visibility API
+  const makePick = async (golferId, golferName) => {
+    setLoadingPick(true);
+    try {
+      const res  = await fetch(
+        `${apiUrl}/api/leagues/${leagueId}/picks`,
+        { method: 'POST', headers, body: JSON.stringify({ golferId, golferName }) }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.msg || 'Pick failed');
+      setPicks(data.picks);
+      setOrder(data.draftOrder);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoadingPick(false);
+    }
+  };
+
+  /* --------------------------- effects ----------------------------- */
   useEffect(() => {
-    if (!leagueId) return
+    if (!leagueId) return;
 
-    // Initial fetches
-    fetchLeague()
-    fetchDraft()
-    fetchField()
+    fetchLeague();
+    fetchDraft();
+    fetchField();
 
-    // Helpers to control polling
+    /* poll control + Page Visibility */
     const startPolling = () => {
-      if (pollRef.current == null) {
-        pollRef.current = setInterval(fetchDraft, 10_000) // 10-second poll
-      }
-    }
-
+      if (!pollRef.current) pollRef.current = setInterval(fetchDraft, 10_000);
+    };
     const stopPolling = () => {
-      if (pollRef.current != null) {
-        clearInterval(pollRef.current)
-        pollRef.current = null
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
       }
-    }
+    };
+    const visHandler = () =>
+      document.hidden ? stopPolling() : startPolling();
 
-    const handleVisibility = () => {
-      if (document.hidden) {
-        stopPolling()
-      } else {
-        startPolling()
-      }
-    }
-
-    // Kick off polling and wire up visibility listener
-    startPolling()
-    document.addEventListener('visibilitychange', handleVisibility)
-
-    // Cleanup on unmount
+    startPolling();
+    document.addEventListener('visibilitychange', visHandler);
     return () => {
-      stopPolling()
-      document.removeEventListener('visibilitychange', handleVisibility)
-    }
-  }, [leagueId])
+      stopPolling();
+      document.removeEventListener('visibilitychange', visHandler);
+    };
+  }, [leagueId]);
 
-  // Auto-join if invited via link
+  /* auto-join via invite */
   useEffect(() => {
     if (
       leagueDetails?.members &&
@@ -171,84 +161,128 @@ export default function Draft() {
       !joining &&
       !leagueDetails.members.some(m => (m._id || m).toString() === userId)
     ) {
-      setJoining(true)
+      setJoining(true);
       fetch(`${apiUrl}/api/leagues/join`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ leagueId }),
       })
         .then(r => r.json())
-        .then(data => {
-          if (data.league) {
-            setLeagueDetails(data.league)
-            fetchDraft()
+        .then(d => {
+          if (d.league) {
+            setLeagueDetails(d.league);
+            fetchDraft();
           }
         })
-        .finally(() => setJoining(false))
+        .finally(() => setJoining(false));
     }
-  }, [leagueDetails, leagueId, joining, userId])
+  }, [leagueDetails, leagueId, joining, userId]);
 
-  // Make a pick
-  const makePick = async (golferId, golferName) => {
-    setLoadingPick(true)
-    setError('')
-    try {
-      const res = await fetch(
-        `${apiUrl}/api/leagues/${leagueId}/picks`,
-        {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ golferId, golferName }),
-        }
-      )
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.msg || 'Failed to make pick')
-      setPicks(data.picks)
-      setOrder(data.draftOrder)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoadingPick(false)
-    }
-  }
-
-  const isComplete = picks.length >= (order.length || 0)
-
-  // --- Loading / Error guards for the PGA field ---
-  if (loadingField) {
+  /* ----------------------- loading guards -------------------------- */
+  if (loadingField)
     return (
       <Layout>
         <p className="text-center mt-8">Loading golfers…</p>
       </Layout>
-    )
-  }
-  if (fieldError) {
+    );
+  if (fieldError)
     return (
       <Layout>
         <p className="text-center mt-8 text-red-500">{fieldError}</p>
       </Layout>
-    )
-  }
+    );
 
+  /* --------------------------- render ------------------------------ */
   return (
     <Layout>
       <div className="bg-white rounded-xl shadow-lg p-6 max-w-lg mx-auto space-y-6">
-        {/* Draft Room header */}
+        {/* HEADER */}
         <div className="flex flex-col items-center py-4 bg-gradient-to-r from-green-500 to-green-300 rounded-lg">
           <h1 className="text-2xl font-bold text-white mb-3">Draft Room</h1>
+
+          {/* invite pill */}
           <button
             onClick={copyLink}
-            className="inline-flex items-center space-x-2 bg-white bg-opacity-90 px-5 py-2 rounded-full shadow hover:bg-opacity-100 transition"
+            className="inline-flex items-center gap-2 bg-white text-green-700 font-semibold px-5 py-2 rounded-full shadow hover:bg-green-50 active:scale-95 transition"
           >
-            <span className="text-green-600 font-semibold">📨 Invite</span>
-            <span className="text-gray-700">{joining ? 'Joining…' : 'Copy Link'}</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 7h6a5 5 0 015 5v0a5 5 0 01-5 5H3m0-10v10m0-10l4 5m6-5h8m0 0l-4 5m4-5l-4-5"
+              />
+            </svg>
+            {joining ? 'Joining…' : 'Copy Invite Link'}
           </button>
+
+          {/* status banner & “view team” button */}
+          {leagueReady && (
+            <div
+              className={`mt-4 w-full text-center py-2 px-4 rounded ${
+                isComplete
+                  ? 'bg-blue-100 text-blue-700'
+                  : isMyTurn
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-yellow-100 text-yellow-800'
+              }`}
+            >
+              {isComplete
+                ? '✅ Draft complete!'
+                : isMyTurn
+                ? '🎯 It’s your turn!'
+                : '⏳ Waiting for others…'}
+            </div>
+          )}
+          {isComplete && (
+            <button
+              onClick={() => router.push(`/team?leagueId=${leagueId}`)}
+              className="mt-3 px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-semibold transition"
+            >
+              View My Team
+            </button>
+          )}
         </div>
 
-        {/* Upcoming Picks */}
+        {/* RESULTS slider */}
         <div>
-          <h2 className="text-lg font-semibold mb-2 text-center">Upcoming Picks</h2>
-          <ul className="flex space-x-3 overflow-x-auto">
+          <h2 className="text-lg font-semibold mb-2 text-center">Results</h2>
+          {picks.length === 0 ? (
+            <p className="text-gray-500 text-center">No picks yet.</p>
+          ) : (
+            <ul className="flex space-x-3 overflow-x-auto px-1">
+              {picks
+                .slice()
+                .reverse()
+                .map((p, idx) => (
+                  <li
+                    key={idx}
+                    className="min-w-[10rem] bg-gray-50 rounded-lg p-3 shadow text-center"
+                  >
+                    <span className="block text-sm font-medium mb-1">
+                      {p.golferName}
+                    </span>
+                    <span className="text-xs text-gray-600">
+                      Pick {p.pickNo} • {userMap[p.user] || p.user}
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </div>
+
+        {/* UPCOMING picks slider */}
+        <div>
+          <h2 className="text-lg font-semibold mb-2 text-center">
+            Upcoming Picks
+          </h2>
+          <ul className="flex space-x-3 overflow-x-auto px-1">
             {upcoming.map((uid, idx) => (
               <li
                 key={idx}
@@ -262,41 +296,18 @@ export default function Draft() {
           </ul>
         </div>
 
-        {/* Status */}
-        {!leagueReady && leagueDetails ? (
-          <div className="text-yellow-800 bg-yellow-100 py-2 px-4 rounded text-center">
-            Waiting for players: {leagueDetails.members.length}/{leagueDetails.teamCount}
-          </div>
-        ) : leagueReady ? (
-          <div
-            className={`text-center py-2 px-4 rounded ${
-              isComplete
-                ? 'bg-blue-100 text-blue-700'
-                : isMyTurn
-                ? 'bg-green-100 text-green-800'
-                : 'bg-yellow-100 text-yellow-800'
-            }`}
-          >
-            {isComplete
-              ? '✅ Draft complete!'
-              : isMyTurn
-              ? '🎯 It’s your turn!'
-              : '⏳ Waiting for others...'}
-          </div>
-        ) : null}
-
-        {/* Search */}
+        {/* SEARCH */}
         <div>
           <input
             type="text"
-            placeholder="Search golfers..."
+            placeholder="Search golfers…"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="w-full px-4 py-2 rounded-full border-2 border-gray-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400"
           />
         </div>
 
-        {/* Available Golfers */}
+        {/* AVAILABLE golfers */}
         <div>
           <h2 className="text-xl font-semibold mb-2">Available Golfers</h2>
           {filtered.length === 0 ? (
@@ -325,37 +336,7 @@ export default function Draft() {
             </ul>
           )}
         </div>
-
-        {/* Results */}
-        <div>
-          <h2 className="text-xl font-semibold mb-2">Results</h2>
-          <ul className="space-y-3">
-            {picks.map((p, idx) => (
-              <li
-                key={idx}
-                className="bg-white border-l-4 border-purple-500 p-4 rounded-lg shadow-sm"
-              >
-                <div className="text-sm font-semibold mb-1">
-                  Round {p.round}, Pick {p.pickNo}
-                </div>
-                <div className="text-gray-700">
-                  {p.golferName} — by {userMap[p.user] || p.user}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* View My Team */}
-        {leagueReady && (
-          <button
-            onClick={() => router.push(`/team?leagueId=${leagueId}`)}
-            className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-lg font-semibold transition"
-          >
-            View My Team
-          </button>
-        )}
       </div>
     </Layout>
-  )
+  );
 }
