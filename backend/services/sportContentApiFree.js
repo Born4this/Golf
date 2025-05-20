@@ -1,101 +1,103 @@
-// backend/services/sportContentApiFree.js – ESPN version
+// backend/services/sportContentApiFree.js – ESPN v2 fix (uses universal leaderboard endpoint)
 import axios from 'axios'
 
-// ESPN’s public golf API base
-const BASE = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga'
+// Separate bases because ESPN’s endpoints aren’t uniform
+const SCHEDULE_BASE   = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga'
+const LEADERBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard'
 
-// Simple in‑memory cache so we only hit ESPN a handful of times per day
+// Local cache (resets on process restart)
 const cache = {
-  eventId: null,     // ESPN event UID for the selected tournament
-  leaderboard: null, // Cached leaderboard JSON
-  lastFetch: 0       // UNIX ms of last successful refresh
+  eventId: null,
+  leaderboard: null,
+  lastFetch: 0,
 }
 
-// Refresh every 3 hours (matches your RapidAPI logic)
-const REFRESH_INTERVAL = 3 * 60 * 60 * 1000
+const REFRESH_INTERVAL = 3 * 60 * 60 * 1000 // 3 h
 
 /**
- * Fetches ESPN’s schedule and picks a tournament ID to track.
- *  – On Mondays → most recently finished event
- *  – Any other day → next upcoming event
+ * Choose the event we should track, prioritising:
+ * 1. Event currently in progress (start ≤ now ≤ end)
+ * 2. Most recently finished event
+ * 3. Next upcoming event
  */
 async function pickEventId () {
-  const res = await axios.get(`${BASE}/schedule`)
+  const res = await axios.get(`${SCHEDULE_BASE}/schedule`)
   const events = res.data?.events ?? []
   if (!events.length) throw new Error('No PGA events returned by ESPN')
 
-  // Extract id + dates in a uniform shape
+  // Map to uniform objects we can sort / filter
   const parsed = events
     .map(e => {
-      const id        = e.id || e.uid || null
-      const startDate = new Date(e.date || e.startDate || e.start || e.season?.startDate || null)
-      const endDate   = new Date(e.endDate || e.links?.find(l => l.rel?.includes('end'))?.href || e.date || null)
+      const id = e.id || (e.uid?.split('~e:')[1] ?? null)
+      const startDate = new Date(e.startDate || e.date || e.week?.startDate || e.week?.start || null)
+      const endDate = new Date(e.endDate || e.week?.endDate || null)
       return id && !isNaN(startDate) ? { id, startDate, endDate } : null
     })
     .filter(Boolean)
 
-  if (!parsed.length) throw new Error('Could not parse ESPN event dates')
+  const now = new Date()
 
-  const now     = new Date()
-  let   chosen  = null
+  // 1) active event
+  const active = parsed.find(ev => ev.startDate <= now && now <= ev.endDate)
+  if (active) return active.id
 
-  if (now.getDay() === 1) {
-    // Monday → pick most recently finished event
-    const past = parsed
-      .filter(ev => ev.endDate && ev.endDate < now)
-      .sort((a, b) => b.endDate - a.endDate)
-    if (past.length) chosen = past[0]
-  }
+  // 2) most recent finished
+  const past = parsed
+    .filter(ev => ev.endDate < now)
+    .sort((a, b) => b.endDate - a.endDate)
+  if (past.length) return past[0].id
 
-  // Otherwise pick the next upcoming event
-  if (!chosen) {
-    const upcoming = parsed
-      .filter(ev => ev.startDate > now)
-      .sort((a, b) => a.startDate - b.startDate)
-    if (upcoming.length) chosen = upcoming[0]
-  }
+  // 3) next upcoming
+  const upcoming = parsed
+    .filter(ev => ev.startDate > now)
+    .sort((a, b) => a.startDate - b.startDate)
+  if (upcoming.length) return upcoming[0].id
 
-  // Fallback to first event in the list (shouldn’t normally happen)
-  if (!chosen) chosen = parsed[0]
-
-  return chosen.id
+  // Fallback
+  return parsed[0].id
 }
 
 /**
- * Returns the cached leaderboard; refreshes from ESPN if cache expired.
+ * Cached fetch of ESPN leaderboard for the chosen event.
  */
 export async function getLeaderboard () {
   const now = Date.now()
+  if (cache.leaderboard && now - cache.lastFetch < REFRESH_INTERVAL) {
+    return cache.leaderboard
+  }
 
-  // Cache miss or TTL expired → refresh
-  if (!cache.leaderboard || now - cache.lastFetch > REFRESH_INTERVAL) {
-    // Pick or re‑pick the event ID if we don’t have one yet
-    if (!cache.eventId) {
-      cache.eventId = await pickEventId()
+  // Ensure we have a valid event ID
+  if (!cache.eventId) cache.eventId = await pickEventId()
+
+  // Helper to fetch leaderboard
+  const fetchLb = async (withEvent = true) => {
+    if (withEvent) {
+      return axios.get(LEADERBOARD_URL, { params: { event: cache.eventId } })
     }
+    return axios.get(LEADERBOARD_URL)
+  }
 
-    try {
-      const lbRes = await axios.get(`${BASE}/leaderboard`, {
-        params: { event: cache.eventId }
-      })
-      cache.leaderboard = lbRes.data
-      cache.lastFetch   = now
-    } catch (err) {
-      // If the event ID is stale, try re‑picking once and retrying
-      console.warn('ESPN fetch failed, retrying with new event ID:', err.message)
-      cache.eventId = await pickEventId()
-      const retry   = await axios.get(`${BASE}/leaderboard`, {
-        params: { event: cache.eventId }
-      })
-      cache.leaderboard = retry.data
-      cache.lastFetch   = now
+  try {
+    const lbRes = await fetchLb(true)
+    cache.leaderboard = lbRes.data
+    cache.lastFetch = now
+  } catch (err) {
+    if (err.response?.status === 404) {
+      // Maybe the event param pattern isn’t supported; try without param
+      const alt = await fetchLb(false)
+      cache.leaderboard = alt.data
+      cache.lastFetch = now
+      // Update eventId so subsequent logic knows the actual event
+      const events = alt.data.events ?? []
+      cache.eventId = events[0]?.id ?? cache.eventId
+    } else {
+      throw err
     }
   }
 
   return cache.leaderboard
 }
 
-// Optional helper: expose current event ID for diagnostic
 export function currentEventId () {
   return cache.eventId
 }
