@@ -1,17 +1,17 @@
-// src/pages/league-selector.jsx
+// src/pages/league-selector.jsx – now includes Demo (1‑Team) option
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 
 export default function LeagueSelector() {
   const router = useRouter();
-  const [leagues, setLeagues]       = useState([]);
-  const [leagueName, setLeagueName] = useState('');
-  const [teamCount, setTeamCount]   = useState(4);
+  const [leagues, setLeagues]         = useState([]);
+  const [leagueName, setLeagueName]   = useState('');
+  const [teamCount, setTeamCount]     = useState(4);
   const [cutHandling, setCutHandling] = useState('standard');
-  const [joinId, setJoinId]         = useState('');
-  const [error, setError]           = useState('');
-  const [loading, setLoading]       = useState(false);
+  const [joinId, setJoinId]           = useState('');
+  const [error, setError]             = useState('');
+  const [loading, setLoading]         = useState(false);
 
   const token = typeof window !== 'undefined' && localStorage.getItem('token');
   const headers = {
@@ -19,11 +19,13 @@ export default function LeagueSelector() {
     Authorization: `Bearer ${token}`,
   };
 
-  // Find leagues user is in
+  // -----------------------------------------------------------------------
+  // Helpers
+  // -----------------------------------------------------------------------
   const fetchLeagues = async () => {
     setError('');
     try {
-      const res = await fetch('/api/leagues', { headers });
+      const res  = await fetch('/api/leagues', { headers });
       const data = await res.json();
       if (!res.ok) throw new Error(data.msg || 'Could not load leagues');
       setLeagues(data.leagues);
@@ -36,7 +38,7 @@ export default function LeagueSelector() {
     fetchLeagues();
   }, []);
 
-  // Create league
+  // Create league ---------------------------------------------------------
   const handleCreate = async () => {
     setError('');
     setLoading(true);
@@ -46,7 +48,7 @@ export default function LeagueSelector() {
         teamCount,
         cutHandling,
       });
-      const res = await fetch('/api/leagues', {
+      const res  = await fetch('/api/leagues', {
         method: 'POST',
         headers,
         body,
@@ -61,13 +63,13 @@ export default function LeagueSelector() {
     }
   };
 
-  // Join league
-  const handleJoin = async (e) => {
+  // Join league -----------------------------------------------------------
+  const handleJoin = async e => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const res = await fetch('/api/leagues/join', {
+      const res  = await fetch('/api/leagues/join', {
         method: 'POST',
         headers,
         body: JSON.stringify({ leagueId: joinId.trim() }),
@@ -82,12 +84,12 @@ export default function LeagueSelector() {
     }
   };
 
-  // Leave league
-  const handleLeave = async (id) => {
+  // Leave league ----------------------------------------------------------
+  const handleLeave = async id => {
     if (!confirm('Are you sure you want to leave this league?')) return;
     setError('');
     try {
-      const res = await fetch(`/api/leagues/${id}/leave`, {
+      const res  = await fetch(`/api/leagues/${id}/leave`, {
         method: 'POST',
         headers,
       });
@@ -99,6 +101,9 @@ export default function LeagueSelector() {
     }
   };
 
+  // -----------------------------------------------------------------------
+  // Render
+  // -----------------------------------------------------------------------
   return (
     <Layout>
       <div className="max-w-md mx-auto mt-10 p-6 bg-white shadow-lg rounded-2xl">
@@ -131,8 +136,10 @@ export default function LeagueSelector() {
               onChange={e => setTeamCount(Number(e.target.value))}
               className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-400"
             >
-              {[2,3,4,5,6].map(n => (
-                <option key={n} value={n}>{n} Teams</option>
+              {[1, 2, 3, 4, 5, 6].map(n => (
+                <option key={n} value={n}>
+                  {n === 1 ? 'Demo (1 Team)' : `${n} Teams`}
+                </option>
               ))}
             </select>
           </div>
@@ -152,9 +159,9 @@ export default function LeagueSelector() {
           <button
             onClick={handleCreate}
             disabled={loading}
-            className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition"
+            className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition disabled:opacity-50"
           >
-            {loading ? 'Working…' : 'New league'}
+            {loading ? 'Working…' : 'New League'}
           </button>
         </div>
 
@@ -170,7 +177,7 @@ export default function LeagueSelector() {
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold"
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition disabled:opacity-50"
           >
             {loading ? '…' : 'Join'}
           </button>

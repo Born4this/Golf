@@ -13,7 +13,7 @@ const LeagueSchema = new mongoose.Schema({
   name:         { type: String, required: true },
   code:         { type: String, required: true, unique: true },
   admin:        { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  teamCount:    { type: Number, required: true, min: 2, max: 6 },
+  teamCount:    { type: Number, required: true, min: 1, max: 6 },
   members:      [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   cutHandling:  { type: String, enum: ['standard', 'cap'], default: 'standard' },
   draftOrder:   [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],

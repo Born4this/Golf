@@ -1,4 +1,4 @@
-// backend/routes/leagues.js
+// backend/routes/leagues.js – updated to allow 1‑team demo leagues & auto‑draft‑order
 import express from 'express';
 import mongoose from 'mongoose';
 import { celebrate } from 'celebrate';
@@ -9,9 +9,23 @@ import { joinLeagueSchema } from '../validators/joinLeague.js';
 
 const router = express.Router();
 
-// @route   GET /api/leagues
-// @desc    List all leagues the current user belongs to
-// @access  Private
+/** Utility to build serpentine draft order */
+function buildDraftOrder(memberIds, picksPerPlayer = 4) {
+  const shuffled = [...memberIds].sort(() => Math.random() - 0.5);
+  const order    = [];
+  for (let round = 0; round < picksPerPlayer; round++) {
+    if (round % 2 === 0) {
+      order.push(...shuffled);
+    } else {
+      order.push(...shuffled.slice().reverse());
+    }
+  }
+  return order;
+}
+
+// -------------------------------------------------------------------------
+// GET /api/leagues – list leagues for current user
+// -------------------------------------------------------------------------
 router.get('/', auth, async (req, res) => {
   try {
     const leagues = await League.find({ members: req.user.id })
@@ -25,35 +39,42 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// @route   POST /api/leagues
-// @desc    Create a new league (optional custom name + cutHandling)
-// @access  Private
+// -------------------------------------------------------------------------
+// POST /api/leagues – create new league (now 1‑6 teams allowed)
+// -------------------------------------------------------------------------
 router.post('/', auth, async (req, res) => {
   try {
-    const { name: customName, cutHandling, teamCount } = req.body;
+    let { name: customName, cutHandling = 'standard', teamCount = 6 } = req.body;
 
-    // generate a unique 6-char join code
+    // sanitize teamCount
+    teamCount = Number(teamCount);
+    if (isNaN(teamCount) || teamCount < 1 || teamCount > 6) {
+      return res.status(400).json({ msg: 'Team count must be between 1 and 6' });
+    }
+
+    // generate a unique 6‑char join code
     let code;
     do {
       code = nanoid(6).toUpperCase();
     } while (await League.findOne({ code }));
 
     // determine league name
-    const leagueName = customName?.trim()
-      ? customName.trim()
-      : `League-${code}`;
+    const leagueName = customName?.trim() ? customName.trim() : `League-${code}`;
 
-    // build league
-    const league = new League({
+    // initial members & (if single‑team) immediate draft order
+    const members = [req.user.id];
+    const draftOrder = teamCount === 1 ? buildDraftOrder(members) : [];
+
+    const league = await League.create({
       name:        leagueName,
       code,
       admin:       req.user.id,
       teamCount,
-      members:     [req.user.id],
+      members,
       cutHandling,
+      draftOrder,
     });
 
-    await league.save();
     res.json({ league });
   } catch (err) {
     console.error('❌ [leagues/create] ERROR:', err);
@@ -61,10 +82,11 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// @route   POST /api/leagues/join
-// @desc    Join an existing league by ID or code
-// @access  Private
-router.post('/join',
+// -------------------------------------------------------------------------
+// POST /api/leagues/join – join by ID or code
+// -------------------------------------------------------------------------
+router.post(
+  '/join',
   auth,
   celebrate({ body: joinLeagueSchema }),
   async (req, res) => {
@@ -87,20 +109,10 @@ router.post('/join',
 
       league.members.push(req.user.id);
 
-      // once full, generate draftOrder
+      // when league reaches capacity, generate draft order
       if (league.members.length === league.teamCount) {
-        const memberIds      = league.members.map(id => id.toString());
-        const picksPerPlayer = 4;
-        const shuffled       = [...memberIds].sort(() => Math.random() - 0.5);
-        const fullOrder      = [];
-        for (let round = 0; round < picksPerPlayer; round++) {
-          if (round % 2 === 0) {
-            fullOrder.push(...shuffled);
-          } else {
-            fullOrder.push(...shuffled.reverse());
-          }
-        }
-        league.draftOrder = fullOrder;
+        const memberIds = league.members.map(id => id.toString());
+        league.draftOrder = buildDraftOrder(memberIds);
       }
 
       await league.save();
@@ -112,17 +124,16 @@ router.post('/join',
   }
 );
 
-// @route   POST /api/leagues/:id/leave
-// @desc    Leave a league you’ve joined
-// @access  Private
+// -------------------------------------------------------------------------
+// POST /api/leagues/:id/leave – leave a league
+// -------------------------------------------------------------------------
 router.post('/:id/leave', auth, async (req, res) => {
   try {
     const league = await League.findById(req.params.id);
     if (!league) return res.status(404).json({ msg: 'League not found' });
+
     const uid = req.user.id.toString();
-    league.members = league.members.filter(
-      m => m.toString() !== uid
-    );
+    league.members = league.members.filter(m => m.toString() !== uid);
     await league.save();
     res.json({ league });
   } catch (err) {
@@ -131,9 +142,9 @@ router.post('/:id/leave', auth, async (req, res) => {
   }
 });
 
-// @route   GET /api/leagues/:id
-// @desc    Get league details (members + draftOrder…)
-// @access  Private
+// -------------------------------------------------------------------------
+// GET /api/leagues/:id – league details
+// -------------------------------------------------------------------------
 router.get('/:id', auth, async (req, res) => {
   try {
     const league = await League.findById(req.params.id)
