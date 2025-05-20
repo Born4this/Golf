@@ -73,14 +73,19 @@ export default function Draft() {
       await navigator.clipboard.writeText(url);
       alert('Invite link copied!');
     } catch {
+      // fallback for browsers / iframes without Clipboard API permission
       const ta = document.createElement('textarea');
       ta.value = url;
-      ta.style.position = 'fixed';
+      ta.style.position = 'fixed';   // avoid scrolling to bottom
       ta.style.top = '-9999px';
       document.body.appendChild(ta);
       ta.select();
-      if (document.execCommand('copy')) alert('Invite link copied!');
-      else alert('Could not copy link—please copy manually.');
+      try {
+        document.execCommand('copy');
+        alert('Invite link copied!');
+      } catch {
+        alert('Could not copy link—please copy it manually.');
+      }
       document.body.removeChild(ta);
     }
   };
@@ -150,6 +155,7 @@ export default function Draft() {
     fetchDraft();
     fetchField();
 
+    /* poll control + Page Visibility */
     const startPolling = () => {
       if (!pollRef.current) pollRef.current = setInterval(fetchDraft, 10_000);
     };
@@ -169,6 +175,7 @@ export default function Draft() {
     };
   }, [leagueId]);
 
+  /* auto-join via invite link */
   useEffect(() => {
     if (
       leagueDetails?.members &&
@@ -211,23 +218,22 @@ export default function Draft() {
   return (
     <Layout>
       <div className="bg-white rounded-xl shadow-lg p-6 max-w-lg mx-auto space-y-6">
-        {/* SLEEK HEADER — vertical / centered */}
-        <div className="flex flex-col items-center gap-3 border border-gray-200 rounded-lg px-4 py-4 shadow-sm bg-white/70 backdrop-blur">
-          <h1 className="text-2xl font-semibold tracking-wide text-green-700 text-center">
-            Draft Room
-          </h1>
+        {/* HEADER */}
+        <div className="flex flex-col items-center py-3 bg-gradient-to-r from-green-500 to-green-300 rounded-lg">
+          <h1 className="text-2xl font-bold text-white mb-3">Draft Room</h1>
 
+          {/* single button slot */}
           {!isComplete ? (
             <button
               onClick={copyLink}
-              className="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-full text-xs font-semibold transition"
+              className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-semibold text-xs transition"
             >
               {joining ? 'Joining…' : 'Copy Invite Link'}
             </button>
           ) : (
             <button
               onClick={() => router.push(`/team?leagueId=${leagueId}`)}
-              className="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-full text-xs font-semibold transition"
+              className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-semibold text-sm transition"
             >
               View My Team
             </button>
@@ -263,7 +269,9 @@ export default function Draft() {
 
         {/* UPCOMING picks slider */}
         <div>
-          <h2 className="text-med font-semibold mb-2">Upcoming Picks</h2>
+          <h2 className="text-med font-semibold mb-2">
+            Upcoming Picks
+          </h2>
           <ul className="flex space-x-3 overflow-x-auto px-1">
             {upcoming.map((uid, idx) => (
               <li
