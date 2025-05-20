@@ -8,18 +8,18 @@ export default function Draft() {
   const { leagueId } = router.query;
 
   /* ----------------------------- state ----------------------------- */
-  const [field,           setField]           = useState([]);
-  const [loadingField,    setLoadingField]    = useState(true);
-  const [fieldError,      setFieldError]      = useState('');
+  const [field,         setField]         = useState([]);
+  const [loadingField,  setLoadingField]  = useState(true);
+  const [fieldError,    setFieldError]    = useState('');
 
-  const [picks,           setPicks]           = useState([]);
-  const [order,           setOrder]           = useState([]);
-  const [leagueDetails,   setLeagueDetails]   = useState(null);
-  const [searchTerm,      setSearchTerm]      = useState('');
-  const [isMyTurn,        setIsMyTurn]        = useState(false);
-  const [joining,         setJoining]         = useState(false);
-  const [loadingPick,     setLoadingPick]     = useState(false);
-  const [error,           setError]           = useState('');
+  const [picks,         setPicks]         = useState([]);
+  const [order,         setOrder]         = useState([]);
+  const [leagueDetails, setLeagueDetails] = useState(null);
+  const [searchTerm,    setSearchTerm]    = useState('');
+  const [isMyTurn,      setIsMyTurn]      = useState(false);
+  const [joining,       setJoining]       = useState(false);
+  const [loadingPick,   setLoadingPick]   = useState(false);
+  const [error,         setError]         = useState('');
 
   const pollRef = useRef(null);
 
@@ -32,12 +32,14 @@ export default function Draft() {
   const isComplete  = picks.length >= (order.length || 0);
 
   /* ------------------------- derived helpers ----------------------- */
-  const userMap = useMemo(() => {
-    return (leagueDetails?.members || []).reduce((map, u) => {
-      map[(u._id || u).toString()] = u.username || u;
-      return map;
-    }, {});
-  }, [leagueDetails]);
+  const userMap = useMemo(
+    () =>
+      (leagueDetails?.members || []).reduce((map, u) => {
+        map[(u._id || u).toString()] = u.username || u;
+        return map;
+      }, {}),
+    [leagueDetails]
+  );
 
   const upcoming = useMemo(() => {
     if (!order.length) return [];
@@ -51,13 +53,15 @@ export default function Draft() {
     return field.filter(g => !picked.has(g.id));
   }, [field, picks]);
 
-  const filtered = useMemo(() => {
-    return searchTerm
-      ? available.filter(g =>
-          g.name.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      : available;
-  }, [available, searchTerm]);
+  const filtered = useMemo(
+    () =>
+      searchTerm
+        ? available.filter(g =>
+            g.name.toLowerCase().includes(searchTerm.toLowerCase())
+          )
+        : available,
+    [available, searchTerm]
+  );
 
   /* --------------------------- actions ----------------------------- */
   const copyLink = () => {
@@ -142,8 +146,7 @@ export default function Draft() {
         pollRef.current = null;
       }
     };
-    const visHandler = () =>
-      document.hidden ? stopPolling() : startPolling();
+    const visHandler = () => (document.hidden ? stopPolling() : startPolling());
 
     startPolling();
     document.addEventListener('visibilitychange', visHandler);
@@ -153,7 +156,7 @@ export default function Draft() {
     };
   }, [leagueId]);
 
-  /* auto-join via invite */
+  /* auto-join via invite link */
   useEffect(() => {
     if (
       leagueDetails?.members &&
@@ -200,50 +203,18 @@ export default function Draft() {
         <div className="flex flex-col items-center py-4 bg-gradient-to-r from-green-500 to-green-300 rounded-lg">
           <h1 className="text-2xl font-bold text-white mb-3">Draft Room</h1>
 
-          {/* invite pill */}
-          <button
-            onClick={copyLink}
-            className="inline-flex items-center gap-2 bg-white text-green-700 font-semibold px-5 py-2 rounded-full shadow hover:bg-green-50 active:scale-95 transition"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+          {/* single button slot */}
+          {!isComplete ? (
+            <button
+              onClick={copyLink}
+              className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-semibold transition"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 7h6a5 5 0 015 5v0a5 5 0 01-5 5H3m0-10v10m0-10l4 5m6-5h8m0 0l-4 5m4-5l-4-5"
-              />
-            </svg>
-            {joining ? 'Joining…' : 'Copy Invite Link'}
-          </button>
-
-          {/* status banner & “view team” button */}
-          {leagueReady && (
-            <div
-              className={`mt-4 w-full text-center py-2 px-4 rounded ${
-                isComplete
-                  ? 'bg-blue-100 text-blue-700'
-                  : isMyTurn
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-yellow-100 text-yellow-800'
-              }`}
-            >
-              {isComplete
-                ? '✅ Draft complete!'
-                : isMyTurn
-                ? '🎯 It’s your turn!'
-                : '⏳ Waiting for others…'}
-            </div>
-          )}
-          {isComplete && (
+              {joining ? 'Joining…' : 'Copy Invite Link'}
+            </button>
+          ) : (
             <button
               onClick={() => router.push(`/team?leagueId=${leagueId}`)}
-              className="mt-3 px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-semibold transition"
+              className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-semibold transition"
             >
               View My Team
             </button>
@@ -322,9 +293,11 @@ export default function Draft() {
                   <span className="font-medium text-gray-800">{g.name}</span>
                   <button
                     onClick={() => makePick(g.id, g.name)}
-                    disabled={!leagueReady || !isMyTurn || loadingPick}
+                    disabled={
+                      !leagueReady || order[picks.length] !== userId || loadingPick
+                    }
                     className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
-                      leagueReady && isMyTurn
+                      leagueReady && order[picks.length] === userId
                         ? 'bg-green-500 hover:bg-green-600 text-white'
                         : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                     }`}
