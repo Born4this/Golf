@@ -35,25 +35,29 @@ if (!FRONTEND_URL) {
 // 1) Security headers
 app.use(helmet());
 
-// 2) CORS: only allow specified frontends
-const allowedOrigins = [
+// 2) CORS: only allow specified frontends (with and without “www”)
+const originNoProtocol = FRONTEND_URL.replace(/^https?:\/\//, '');
+const allowedOrigins = new Set([
   FRONTEND_URL,
-  FRONTEND_URL.startsWith('https://')
-    ? FRONTEND_URL.replace('https://', 'https://www.')
-    : FRONTEND_URL
-];
-app.use(
-  cors({
-    origin: (incomingOrigin, callback) => {
-      if (!incomingOrigin) return callback(null, true);
-      if (allowedOrigins.includes(incomingOrigin)) {
-        return callback(null, true);
-      }
-      callback(new Error(`CORS policy: origin ${incomingOrigin} not allowed`));
-    },
-    optionsSuccessStatus: 200
-  })
-);
+  `https://www.${originNoProtocol}`,
+  `https://${originNoProtocol.replace(/^www\./, '')}`
+]);
+
+app.use(cors({
+  origin: (incomingOrigin, callback) => {
+    // allow server-to-server or same-origin requests (no origin header),
+    // or any in our allowlist
+    if (!incomingOrigin || allowedOrigins.has(incomingOrigin)) {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS policy: origin ${incomingOrigin} not allowed`));
+  },
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
+// enable pre-flight for all routes
+app.options('*', cors());
 
 // 3) Body parsers
 app.use(express.json());
@@ -62,7 +66,7 @@ app.use(express.urlencoded({ extended: true }));
 // 4) NoSQL injection sanitization (body & params only)
 const { sanitize } = mongoSanitize;
 app.use((req, res, next) => {
-  if (req.body) req.body = sanitize(req.body);
+  if (req.body)  req.body  = sanitize(req.body);
   if (req.params) req.params = sanitize(req.params);
   next();
 });
