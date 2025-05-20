@@ -267,20 +267,19 @@ export default function Draft() {
           </ul>
         </div>
 
-        {/* SEARCH */}
+        {/* AVAILABLE golfers */}
         <div>
+          <h2 className="text-med font-semibold mb-2">Available Golfers</h2>
+
+          {/* SEARCH (now slimmer & positioned under the heading) */}
           <input
             type="text"
             placeholder="Search golfers…"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 rounded-full border-2 border-gray-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400"
+            className="w-full mb-4 px-3 py-1 rounded-full border-2 border-gray-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-400"
           />
-        </div>
 
-        {/* AVAILABLE golfers */}
-        <div>
-          <h2 className="text-med font-semibold mb-2">Available Golfers</h2>
           {filtered.length === 0 ? (
             <p className="text-gray-500">No golfers match your search.</p>
           ) : (
