@@ -7,18 +7,18 @@ export default function Layout({ children }) {
   const { leagueId } = router.query;
   const [league, setLeague] = useState(null);
 
-  /* Draft page: hide BOTH background and header */
+  /* Draft page: special background, no header */
   const isDraftPage =
     router.pathname === '/draft' || router.asPath.startsWith('/draft');
 
-  /* Pages where only the header (league name) should be hidden */
+  /* Pages where we hide just the league-name header */
   const hideLeagueHeader =
     isDraftPage ||
     ['/team', '/leaderboard'].some(path =>
       router.pathname.startsWith(path) || router.asPath.startsWith(path)
     );
 
-  /* Load league name only when we plan to show it */
+  /* Fetch league name only if we plan to show it */
   useEffect(() => {
     if (!leagueId || hideLeagueHeader) return;
 
@@ -36,18 +36,21 @@ export default function Layout({ children }) {
       .catch(() => {});
   }, [leagueId, hideLeagueHeader]);
 
+  /* Choose background image: draft gets its own */
+  const bgImage = isDraftPage
+    ? "url('/images/draftbg.png')"
+    : "url('/images/bg.jpg')";
+
   return (
     <>
-      {/* Background everywhere except the draft page */}
-      {!isDraftPage && (
-        <div
-          className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/images/bg.jpg')" }}
-        />
-      )}
+      {/* Background shown on every page; image changes for /draft */}
+      <div
+        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: bgImage }}
+      />
 
       <div className="relative min-h-screen z-10">
-        {/* League name header excluded on /draft, /team, /leaderboard */}
+        {/* League name header hidden on /draft, /team, /leaderboard */}
         {!hideLeagueHeader && league && (
           <header className="max-w-5xl mx-auto px-4 py-6">
             <h1 className="text-3xl font-bold text-center text-green-600">
