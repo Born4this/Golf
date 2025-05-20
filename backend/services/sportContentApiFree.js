@@ -2,7 +2,7 @@
 import axios from 'axios'
 
 const LB_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard'
-const CACHE_TTL = 3 * 60 * 60 * 1000 // 3 hours
+const CACHE_TTL = 24 * 60 * 60 * 1000 // 3 hours
 
 const cache = {
   data: null,
