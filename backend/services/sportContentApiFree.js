@@ -1,64 +1,47 @@
-// backend/services/sportContentApiFree.js – ESPN v2 fix (uses universal leaderboard endpoint)
+// backend/services/sportContentApiFree.js – fix ESPN leaderboard param (tournamentId)
 import axios from 'axios'
 
-// Separate bases because ESPN’s endpoints aren’t uniform
-const SCHEDULE_BASE   = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga'
-const LEADERBOARD_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard'
+const SCHED_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/schedule'
+const LB_URL    = 'https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard'
 
-// Local cache (resets on process restart)
+const REFRESH_INTERVAL = 3 * 60 * 60 * 1000 // 3 h
+
 const cache = {
-  eventId: null,
+  tournamentId: null,
   leaderboard: null,
   lastFetch: 0,
 }
 
-const REFRESH_INTERVAL = 3 * 60 * 60 * 1000 // 3 h
-
 /**
- * Choose the event we should track, prioritising:
- * 1. Event currently in progress (start ≤ now ≤ end)
- * 2. Most recently finished event
- * 3. Next upcoming event
+ * Pick a tournament ID using live/finished/upcoming priority.
  */
-async function pickEventId () {
-  const res = await axios.get(`${SCHEDULE_BASE}/schedule`)
+async function pickTournamentId () {
+  const res = await axios.get(SCHED_URL)
   const events = res.data?.events ?? []
-  if (!events.length) throw new Error('No PGA events returned by ESPN')
+  if (!events.length) throw new Error('Empty ESPN schedule')
 
-  // Map to uniform objects we can sort / filter
   const parsed = events
     .map(e => {
       const id = e.id || (e.uid?.split('~e:')[1] ?? null)
-      const startDate = new Date(e.startDate || e.date || e.week?.startDate || e.week?.start || null)
-      const endDate = new Date(e.endDate || e.week?.endDate || null)
-      return id && !isNaN(startDate) ? { id, startDate, endDate } : null
+      const start = new Date(e.startDate || e.date)
+      const end   = new Date(e.endDate   || start)
+      return id && !isNaN(start) ? { id, start, end } : null
     })
     .filter(Boolean)
 
   const now = new Date()
-
-  // 1) active event
-  const active = parsed.find(ev => ev.startDate <= now && now <= ev.endDate)
+  const active   = parsed.find(ev => ev.start <= now && now <= ev.end)
   if (active) return active.id
 
-  // 2) most recent finished
-  const past = parsed
-    .filter(ev => ev.endDate < now)
-    .sort((a, b) => b.endDate - a.endDate)
+  const past = parsed.filter(ev => ev.end < now).sort((a,b)=>b.end-a.end)
   if (past.length) return past[0].id
 
-  // 3) next upcoming
-  const upcoming = parsed
-    .filter(ev => ev.startDate > now)
-    .sort((a, b) => a.startDate - b.startDate)
-  if (upcoming.length) return upcoming[0].id
-
-  // Fallback
-  return parsed[0].id
+  const upcoming = parsed.filter(ev => ev.start > now).sort((a,b)=>a.start-b.start)
+  return upcoming.length ? upcoming[0].id : parsed[0].id
 }
 
 /**
- * Cached fetch of ESPN leaderboard for the chosen event.
+ * Return cached leaderboard, refreshing from ESPN when stale.
  */
 export async function getLeaderboard () {
   const now = Date.now()
@@ -66,38 +49,26 @@ export async function getLeaderboard () {
     return cache.leaderboard
   }
 
-  // Ensure we have a valid event ID
-  if (!cache.eventId) cache.eventId = await pickEventId()
-
-  // Helper to fetch leaderboard
-  const fetchLb = async (withEvent = true) => {
-    if (withEvent) {
-      return axios.get(LEADERBOARD_URL, { params: { event: cache.eventId } })
-    }
-    return axios.get(LEADERBOARD_URL)
-  }
+  if (!cache.tournamentId) cache.tournamentId = await pickTournamentId()
 
   try {
-    const lbRes = await fetchLb(true)
+    const lbRes = await axios.get(LB_URL, {
+      params: { tournamentId: cache.tournamentId },
+    })
     cache.leaderboard = lbRes.data
     cache.lastFetch = now
   } catch (err) {
-    if (err.response?.status === 404) {
-      // Maybe the event param pattern isn’t supported; try without param
-      const alt = await fetchLb(false)
-      cache.leaderboard = alt.data
-      cache.lastFetch = now
-      // Update eventId so subsequent logic knows the actual event
-      const events = alt.data.events ?? []
-      cache.eventId = events[0]?.id ?? cache.eventId
-    } else {
-      throw err
-    }
+    // If tournament has no dedicated leaderboard yet, fall back to default
+    console.warn('ESPN leaderboard fetch failed, trying default:', err.message)
+    const fallback = await axios.get(LB_URL)
+    cache.leaderboard  = fallback.data
+    cache.tournamentId = fallback.data?.events?.[0]?.id ?? null
+    cache.lastFetch    = now
   }
 
   return cache.leaderboard
 }
 
-export function currentEventId () {
-  return cache.eventId
+export function currentTournamentId () {
+  return cache.tournamentId
 }
