@@ -6,25 +6,33 @@ import Layout from '../components/Layout';
 export default function Team() {
   const router = useRouter();
   const { leagueId } = router.query;
-  const [user, setUser]           = useState('');
-  const [team, setTeam]           = useState([]);
-  const [error, setError]         = useState('');
+
+  // state
+  const [user, setUser]             = useState('');
+  const [team, setTeam]             = useState([]);
+  const [error, setError]           = useState('');
   const [refreshing, setRefreshing] = useState(false);
+
+  // ref to track the polling timer so that we can stop / restart it
   const pollRef = useRef(null);
 
+  // auth header (stored in localStorage after login)
   const token = typeof window !== 'undefined' && localStorage.getItem('token');
   const headers = {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,
   };
 
-  // fetch the user's team
+  /**
+   * GET /api/leagues/:id/team – only includes picks & any stored strokes
+   */
   const fetchTeam = async () => {
     if (!leagueId) return;
     try {
       const res  = await fetch(`/api/leagues/${leagueId}/team`, { headers });
       const data = await res.json();
       if (!res.ok) throw new Error(data.msg || 'Error fetching team');
+
       setUser(data.user);
       setTeam(data.team);
       setError('');
@@ -33,7 +41,9 @@ export default function Team() {
     }
   };
 
-  // sync scores then reload team
+  /**
+   * POST /api/scores/:id – sync latest scores for league, then reload team
+   */
   const refreshScores = async () => {
     if (!leagueId) return;
     setRefreshing(true);
@@ -49,25 +59,33 @@ export default function Team() {
     }
   };
 
+  /**
+   * Start/stop polling helpers so we can pause when the tab is hidden
+   */
+  const startPolling = () => {
+    if (pollRef.current == null) {
+      // initial sync immediately
+      refreshScores();
+      // subsequent syncs every 2 minutes
+      pollRef.current = setInterval(refreshScores, 2 * 60 * 1000);
+    }
+  };
+
+  const stopPolling = () => {
+    if (pollRef.current != null) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  };
+
+  // Main effect: set up polling + Page Visibility events
   useEffect(() => {
     if (!leagueId) return;
 
-    // start polling every 2 minutes
-    const startPolling = () => {
-      if (pollRef.current == null) {
-        // initial load
-        refreshScores();
-        pollRef.current = setInterval(refreshScores, 2 * 60 * 1000);
-      }
-    };
+    // Kick off polling when the component mounts
+    startPolling();
 
-    const stopPolling = () => {
-      if (pollRef.current != null) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-    };
-
+    // Pause polling when the tab becomes hidden (and resume when visible)
     const handleVisibilityChange = () => {
       if (document.hidden) {
         stopPolling();
@@ -78,9 +96,7 @@ export default function Team() {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // kick off polling when component mounts
-    startPolling();
-
+    // Cleanup on unmount
     return () => {
       stopPolling();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -109,7 +125,7 @@ export default function Team() {
             {refreshing ? 'Refreshing…' : 'Refresh Scores'}
           </button>
 
-          {/* Team List */}
+          {/* Team list */}
           <ul className="flex flex-col gap-4">
             {team.map((p, idx) => (
               <li
@@ -128,15 +144,14 @@ export default function Team() {
                         : ''
                     }`}
                   >
-                    {p.strokes != null
-                      ? (p.strokes > 0 ? `+${p.strokes}` : p.strokes)
-                      : '—'}
+                    {p.strokes != null ? (p.strokes > 0 ? `+${p.strokes}` : p.strokes) : '—'}
                   </span>
                 </div>
               </li>
             ))}
           </ul>
 
+          {/* Leaderboard link */}
           <button
             onClick={() => router.push(`/leaderboard?leagueId=${leagueId}`)}
             className="mt-8 w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-md transition"

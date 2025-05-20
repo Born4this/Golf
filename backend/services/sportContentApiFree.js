@@ -1,100 +1,101 @@
-// backend/services/sportContentApiFree.js
-import axios from 'axios';
+// backend/services/sportContentApiFree.js – ESPN version
+import axios from 'axios'
 
-const HOST = process.env.RAPIDAPI_HOST;   // e.g. golf-leaderboard-data.p.rapidapi.com
-const KEY  = process.env.RAPIDAPI_KEY;
+// ESPN’s public golf API base
+const BASE = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga'
 
-const headers = {
-  'X-RapidAPI-Key': KEY,
-  'X-RapidAPI-Host': HOST
-};
-
-// In‐memory cache: holds tournamentId, leaderboard payload, and last fetch timestamp
+// Simple in‑memory cache so we only hit ESPN a handful of times per day
 const cache = {
-  tournamentId: null,
-  leaderboard: null,
-  lastFetch: 0
-};
+  eventId: null,     // ESPN event UID for the selected tournament
+  leaderboard: null, // Cached leaderboard JSON
+  lastFetch: 0       // UNIX ms of last successful refresh
+}
 
-// Refresh interval for leaderboard data: 3 hours (in milliseconds)
-const REFRESH_INTERVAL = 3 * 60 * 60 * 1000;
+// Refresh every 3 hours (matches your RapidAPI logic)
+const REFRESH_INTERVAL = 3 * 60 * 60 * 1000
 
 /**
- * Pick the fixture ID according to:
- *  - Mondays (day=1): most recently finished tournament
- *  - Otherwise: next upcoming tournament
+ * Fetches ESPN’s schedule and picks a tournament ID to track.
+ *  – On Mondays → most recently finished event
+ *  – Any other day → next upcoming event
  */
-async function pickFixtureId() {
-  // 1) Fetch all tours
-  const toursRes = await axios.get(`https://${HOST}/tours`, { headers });
-  const tours = toursRes.data.results ?? [];
-  const pga = tours.find(t =>
-    t.active === 1 &&
-    /pga tour/i.test(t.tour_name) &&
-    t.season_id === new Date().getFullYear()
-  );
-  if (!pga) throw new Error('PGA Tour not found');
+async function pickEventId () {
+  const res = await axios.get(`${BASE}/schedule`)
+  const events = res.data?.events ?? []
+  if (!events.length) throw new Error('No PGA events returned by ESPN')
 
-  // 2) Fetch fixtures for that tour + season
-  const fxRes = await axios.get(
-    `https://${HOST}/fixtures/${pga.tour_id}/${pga.season_id}`,
-    { headers }
-  );
-  let fixtures = fxRes.data;
-  if (!Array.isArray(fixtures)) fixtures = fixtures.results ?? fixtures.data ?? [];
-  if (!Array.isArray(fixtures) || fixtures.length === 0) {
-    throw new Error('No fixtures returned');
-  }
+  // Extract id + dates in a uniform shape
+  const parsed = events
+    .map(e => {
+      const id        = e.id || e.uid || null
+      const startDate = new Date(e.date || e.startDate || e.start || e.season?.startDate || null)
+      const endDate   = new Date(e.endDate || e.links?.find(l => l.rel?.includes('end'))?.href || e.date || null)
+      return id && !isNaN(startDate) ? { id, startDate, endDate } : null
+    })
+    .filter(Boolean)
 
-  const now = new Date();
-  let chosen = null;
+  if (!parsed.length) throw new Error('Could not parse ESPN event dates')
 
-  // Monday logic: pick the most recently finished event
+  const now     = new Date()
+  let   chosen  = null
+
   if (now.getDay() === 1) {
-    const past = fixtures
-      .filter(f => f.end_date && new Date(f.end_date) < now)
-      .sort((a, b) => new Date(b.end_date) - new Date(a.end_date));
-    if (past.length) chosen = past[0];
+    // Monday → pick most recently finished event
+    const past = parsed
+      .filter(ev => ev.endDate && ev.endDate < now)
+      .sort((a, b) => b.endDate - a.endDate)
+    if (past.length) chosen = past[0]
   }
 
-  // Default: pick the next upcoming event
+  // Otherwise pick the next upcoming event
   if (!chosen) {
-    chosen = fixtures
-      .filter(f => new Date(f.start_date) > now)
-      .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))[0];
+    const upcoming = parsed
+      .filter(ev => ev.startDate > now)
+      .sort((a, b) => a.startDate - b.startDate)
+    if (upcoming.length) chosen = upcoming[0]
   }
 
-  if (!chosen) throw new Error('No suitable tournament found');
-  return chosen.fixture_id ?? chosen.id;
+  // Fallback to first event in the list (shouldn’t normally happen)
+  if (!chosen) chosen = parsed[0]
+
+  return chosen.id
 }
 
 /**
- * Returns the cached leaderboard (with Monday logic) if under TTL,
- * otherwise re-fetches and updates the cache.
+ * Returns the cached leaderboard; refreshes from ESPN if cache expired.
  */
-export async function getLeaderboard() {
-  const now = Date.now();
+export async function getLeaderboard () {
+  const now = Date.now()
 
-  // If cache is empty or expired, re-fetch
+  // Cache miss or TTL expired → refresh
   if (!cache.leaderboard || now - cache.lastFetch > REFRESH_INTERVAL) {
-    // Seed tournamentId on first run
-    if (!cache.tournamentId) {
-      cache.tournamentId = await pickFixtureId();
+    // Pick or re‑pick the event ID if we don’t have one yet
+    if (!cache.eventId) {
+      cache.eventId = await pickEventId()
     }
 
-    // Fetch fresh leaderboard for that tournament
-    const lbRes = await axios.get(
-      `https://${HOST}/leaderboard/${cache.tournamentId}`,
-      { headers }
-    );
-    const raw = lbRes.data;
-
-    // Normalize into a plain object (unwrapping .results if present)
-    const normalized = raw.results ?? raw;
-
-    cache.leaderboard = normalized;
-    cache.lastFetch   = now;
+    try {
+      const lbRes = await axios.get(`${BASE}/leaderboard`, {
+        params: { event: cache.eventId }
+      })
+      cache.leaderboard = lbRes.data
+      cache.lastFetch   = now
+    } catch (err) {
+      // If the event ID is stale, try re‑picking once and retrying
+      console.warn('ESPN fetch failed, retrying with new event ID:', err.message)
+      cache.eventId = await pickEventId()
+      const retry   = await axios.get(`${BASE}/leaderboard`, {
+        params: { event: cache.eventId }
+      })
+      cache.leaderboard = retry.data
+      cache.lastFetch   = now
+    }
   }
 
-  return cache.leaderboard;
+  return cache.leaderboard
+}
+
+// Optional helper: expose current event ID for diagnostic
+export function currentEventId () {
+  return cache.eventId
 }

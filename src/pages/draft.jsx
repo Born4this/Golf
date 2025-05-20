@@ -1,5 +1,5 @@
 // src/pages/draft.jsx
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Layout from '../components/Layout'
 
@@ -21,6 +21,9 @@ export default function Draft() {
   const [joining, setJoining] = useState(false)
   const [loadingPick, setLoadingPick] = useState(false)
   const [error, setError] = useState('')
+
+  // Interval ref so we can pause/resume polling when the tab is hidden
+  const pollRef = useRef(null)
 
   const token = typeof window !== 'undefined' && localStorage.getItem('token')
   const userId = typeof window !== 'undefined' && localStorage.getItem('userId')
@@ -118,16 +121,49 @@ export default function Draft() {
     }
   }
 
+  // Effect to load initial data & manage polling with Page Visibility API
   useEffect(() => {
     if (!leagueId) return
+
+    // Initial fetches
     fetchLeague()
     fetchDraft()
     fetchField()
-    const iv = setInterval(fetchDraft, 10_000)
-    return () => clearInterval(iv)
+
+    // Helpers to control polling
+    const startPolling = () => {
+      if (pollRef.current == null) {
+        pollRef.current = setInterval(fetchDraft, 10_000) // 10-second poll
+      }
+    }
+
+    const stopPolling = () => {
+      if (pollRef.current != null) {
+        clearInterval(pollRef.current)
+        pollRef.current = null
+      }
+    }
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopPolling()
+      } else {
+        startPolling()
+      }
+    }
+
+    // Kick off polling and wire up visibility listener
+    startPolling()
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    // Cleanup on unmount
+    return () => {
+      stopPolling()
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [leagueId])
 
-  // Auto-join if invited
+  // Auto-join if invited via link
   useEffect(() => {
     if (
       leagueDetails?.members &&

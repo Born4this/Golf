@@ -1,93 +1,66 @@
-// backend/routes/scores.js
+// backend/routes/scores.js – ESPN style you preferred
 import express from 'express';
 import auth from '../middleware/auth.js';
-import { getLeaderboard } from '../services/sportContentApiFree.js';
+import axios from 'axios';
 import League from '../models/League.js';
 import Score from '../models/Score.js';
 
 const router = express.Router();
 
-// Short‐term cache for scores response
-let lastScores = null;
-let lastScoresFetch = 0;
-const SCORES_TTL = 60 * 1000; // 1 minute
-
 // GET /api/scores/:leagueId
-// Returns current scores (to-par) for each golfer in the league
 router.get('/:leagueId', auth, async (req, res) => {
-  const now = Date.now();
-  if (lastScores && now - lastScoresFetch < SCORES_TTL) {
-    console.log('🔍 [scores] returning cached scores');
-    return res.json({ scores: lastScores });
-  }
-
   try {
-    // 1) Load league and draft picks
+    // 1) Load league (to check cutHandling mode)
     const league = await League.findById(req.params.leagueId).lean();
     if (!league) return res.status(404).json({ msg: 'League not found' });
+
     const golferIds = league.draftPicks.map(p => p.golfer);
-    console.log('🔍 [scores] golferIds:', golferIds);
 
-    // 2) Fetch live leaderboard data
-    const lbData = await getLeaderboard();
-    console.log('🔍 [scores] lbData keys:', Object.keys(lbData));
+    // 2) Fetch live leaderboard data from ESPN
+    const { data } = await axios.get('https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard');
+    const event      = data.events?.[0];
+    const comps      = event?.competitions?.[0]?.competitors || [];
+    const tournament = event?.tournament;
 
-    // 3) Identify the player array
-    const players = Array.isArray(lbData.leaderboard)
-      ? lbData.leaderboard
-      : Array.isArray(lbData.players)
-      ? lbData.players
-      : Array.isArray(lbData.player_list)
-      ? lbData.player_list
-      : [];
-    console.log('🔍 [scores] players length:', players.length);
-
-    // 4) Determine cut line
-    const rawCut = lbData.cut_line ?? lbData.cutLine ?? null;
-    const cutActive = league.cutHandling === 'cap' && typeof rawCut === 'number' && rawCut > 0;
+    // Determine cut line if league is in "cap at cut" mode
+    const rawCut = tournament?.cutScore;
+    const cutActive =
+      league.cutHandling === 'cap' &&
+      typeof rawCut === 'number' &&
+      rawCut > 0 &&
+      Boolean(tournament?.cutComplete);
     const cutScore = cutActive ? rawCut : null;
-    console.log('🔍 [scores] cutScore:', cutScore);
 
-    // 5) Build scores array using total_to_par
+    // 3) Build scores array, clamping at cutScore if needed
     const scores = golferIds.map(id => {
-      const pl = players.find(p => {
-        const pid = (p.player_id ?? p.playerId)?.toString();
-        return pid === id;
-      });
-      console.log(`🔍 [scores] found player for ${id}:`, pl);
-
+      const c = comps.find(cmp => cmp.athlete.id.toString() === id);
+      const stat = c?.statistics?.find(s => s.name === 'scoreToPar');
       let toPar = null;
-      if (pl) {
-        if (pl.total_to_par != null) {
-          toPar = parseInt(pl.total_to_par, 10);
-        } else if (pl.totalToPar != null) {
-          toPar = parseInt(pl.totalToPar, 10);
-        }
+      if (stat && typeof stat.value === 'number') {
+        toPar = stat.value;
+      } else if (c?.score?.displayValue) {
+        toPar = parseInt(c.score.displayValue, 10);
       }
-      console.log(`🔍 [scores] toPar for ${id}:`, toPar);
 
-      // Clamp at cut if needed
-      let final = toPar;
+      // Clamp at cut if applicable
+      let finalStrokes = toPar;
       if (cutScore != null && toPar != null && toPar > cutScore) {
-        final = cutScore;
+        finalStrokes = cutScore;
       }
-      return { golfer: id, strokes: final };
-    });
-    console.log('🔍 [scores] final scores:', scores);
 
-    // 6) Upsert into Score collection
-    const ops = scores.map(s => ({
+      return { golfer: id, strokes: finalStrokes };
+    });
+
+    // 4) Upsert into Score collection
+    const bulk = scores.map(s => ({
       updateOne: {
         filter: { golfer: s.golfer },
         update: { $set: { strokes: s.strokes, updatedAt: new Date() } },
-        upsert: true
-      }
+        upsert: true,
+      },
     }));
-    await Score.bulkWrite(ops);
+    await Score.bulkWrite(bulk);
 
-    // cache and return
-    lastScores = scores;
-    lastScoresFetch = now;
     res.json({ scores });
   } catch (err) {
     console.error('❌ [scores] ERROR:', err);
