@@ -223,7 +223,7 @@ export default function Draft() {
 
         {/* RESULTS slider */}
         <div>
-          <h2 className="text-lg font-semibold mb-2 text-center">Results</h2>
+          <h2 className="text-lg font-semibold mb-2">Results</h2>
           {picks.length === 0 ? (
             <p className="text-gray-500 text-center">No picks yet.</p>
           ) : (
@@ -250,7 +250,7 @@ export default function Draft() {
 
         {/* UPCOMING picks slider */}
         <div>
-          <h2 className="text-lg font-semibold mb-2 text-center">
+          <h2 className="text-lg font-semibold mb-2">
             Upcoming Picks
           </h2>
           <ul className="flex space-x-3 overflow-x-auto px-1">
