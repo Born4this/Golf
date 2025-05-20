@@ -207,7 +207,7 @@ export default function Draft() {
           {!isComplete ? (
             <button
               onClick={copyLink}
-              className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-semibold text-sm transition"
+              className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-semibold text-xs transition"
             >
               {joining ? 'Joining…' : 'Copy Invite Link'}
             </button>
