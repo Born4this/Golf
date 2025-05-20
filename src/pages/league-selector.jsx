@@ -7,7 +7,7 @@ export default function LeagueSelector() {
   const router = useRouter();
   const [leagues, setLeagues]         = useState([]);
   const [leagueName, setLeagueName]   = useState('');
-  const [teamCount, setTeamCount]     = useState(4);
+  const [teamCount, setTeamCount]     = useState(1);
   const [cutHandling, setCutHandling] = useState('standard');
   const [joinId, setJoinId]           = useState('');
   const [error, setError]             = useState('');
