@@ -20,7 +20,7 @@ export default function Layout({ children }) {
 
   /* Pages that need a bit of breathing-room above the card */
   const needsTopSpacing =
-    ['/league-selector', '/draft', '/team', '/leaderboard'].some(path =>
+    ['/draft'].some(path =>
       router.pathname.startsWith(path) || router.asPath.startsWith(path)
     );
 
@@ -68,7 +68,7 @@ export default function Layout({ children }) {
         {/* Page content */}
         <main
           className={`max-w-5xl mx-auto px-4 pb-6${
-            needsTopSpacing ? ' pt-6' : ''
+            needsTopSpacing ? ' pt-5' : ''
           }`}
         >
           {children}
