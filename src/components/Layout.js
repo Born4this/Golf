@@ -60,7 +60,13 @@ export default function Layout({ children }) {
         )}
 
         {/* Page content */}
-        <main className="max-w-5xl mx-auto px-4 pb-6">{children}</main>
+        <main
+          className={`max-w-5xl mx-auto px-4 pb-6${
+            needsTopSpacing ? ' pt-8' : ''
+          }`}
+        >
+          {children}
+        </main>
       </div>
     </>
   );
