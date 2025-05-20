@@ -200,14 +200,14 @@ export default function Draft() {
     <Layout>
       <div className="bg-white rounded-xl shadow-lg p-6 max-w-lg mx-auto space-y-6">
         {/* HEADER */}
-        <div className="flex flex-col items-center py-4 bg-gradient-to-r from-green-500 to-green-300 rounded-med">
+        <div className="flex flex-col items-center py-3 bg-gradient-to-r from-green-500 to-green-300 rounded-med">
           <h1 className="text-xl font-bold text-white mb-3">Draft Room</h1>
 
           {/* single button slot */}
           {!isComplete ? (
             <button
               onClick={copyLink}
-              className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-semibold text-sm transition"
+              className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-semibold text-sm transition"
             >
               {joining ? 'Joining…' : 'Copy Invite Link'}
             </button>
