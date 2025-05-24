@@ -1,4 +1,3 @@
-// backend/routes/draft.js
 import express from 'express';
 import authMiddleware from '../middleware/auth.js';
 import League from '../models/League.js';

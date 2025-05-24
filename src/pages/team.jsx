@@ -6,26 +6,21 @@ import Layout from '../components/Layout';
 export default function Team() {
   const router = useRouter();
   const { leagueId } = router.query;
-
-  // state
   const [user, setUser]             = useState('');
   const [team, setTeam]             = useState([]);
   const [error, setError]           = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  // ref to track the polling timer so that we can stop / restart it
+  // ref to track the polling timer 
   const pollRef = useRef(null);
 
-  // auth header (stored in localStorage after login)
   const token = typeof window !== 'undefined' && localStorage.getItem('token');
   const headers = {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,
   };
 
-  /**
-   * GET /api/leagues/:id/team – only includes picks & any stored strokes
-   */
+  /* GET /api/leagues/:id/team */
   const fetchTeam = async () => {
     if (!leagueId) return;
     try {
@@ -41,9 +36,7 @@ export default function Team() {
     }
   };
 
-  /**
-   * POST /api/scores/:id – sync latest scores for league, then reload team
-   */
+  /* POST /api/scores/:id – sync latest scores for league, then reload team */
   const refreshScores = async () => {
     if (!leagueId) return;
     setRefreshing(true);
@@ -59,9 +52,7 @@ export default function Team() {
     }
   };
 
-  /**
-   * Start/stop polling helpers so we can pause when the tab is hidden
-   */
+  /* Start/stop helpers to pause when the tab is hidden */
   const startPolling = () => {
     if (pollRef.current == null) {
       // initial sync immediately
@@ -78,14 +69,13 @@ export default function Team() {
     }
   };
 
-  // Main effect: set up polling + Page Visibility events
+  // Set up polling + Pagge vis
   useEffect(() => {
     if (!leagueId) return;
 
-    // Kick off polling when the component mounts
     startPolling();
 
-    // Pause polling when the tab becomes hidden (and resume when visible)
+    // Pause polling when away
     const handleVisibilityChange = () => {
       if (document.hidden) {
         stopPolling();
@@ -96,7 +86,6 @@ export default function Team() {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Cleanup on unmount
     return () => {
       stopPolling();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -106,14 +95,12 @@ export default function Team() {
   return (
     <Layout>
       <div className="max-w-md mx-auto mt-8 bg-white shadow-lg rounded-lg overflow-hidden">
-        {/* Header */}
         <div className="px-6 py-4 bg-green-600">
           <h2 className="text-white text-2xl font-semibold text-center">
             {user ? `${user}'s Team` : 'Your Team'}
           </h2>
         </div>
 
-        {/* Body */}
         <div className="px-4 py-6">
           {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
 

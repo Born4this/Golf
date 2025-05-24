@@ -1,4 +1,3 @@
-// src/pages/draft.jsx
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
@@ -7,7 +6,6 @@ export default function Draft() {
   const router = useRouter();
   const { leagueId } = router.query;
 
-  /* ----------------------------- state ----------------------------- */
   const [field,         setField]         = useState([]);
   const [loadingField,  setLoadingField]  = useState(true);
   const [fieldError,    setFieldError]    = useState('');
@@ -31,7 +29,6 @@ export default function Draft() {
   const leagueReady = leagueDetails?.members?.length >= leagueDetails?.teamCount;
   const isComplete  = picks.length >= (order.length || 0);
 
-  /* ------------------------- derived helpers ----------------------- */
   const userMap = useMemo(
     () =>
       (leagueDetails?.members || []).reduce((map, u) => {
@@ -73,7 +70,7 @@ export default function Draft() {
       await navigator.clipboard.writeText(url);
       alert('Invite link copied!');
     } catch {
-      // fallback for browsers / iframes without Clipboard API permission
+      // fallback for browsers / iframes 
       const ta = document.createElement('textarea');
       ta.value = url;
       ta.style.position = 'fixed';   // avoid scrolling to bottom
@@ -175,7 +172,7 @@ export default function Draft() {
     };
   }, [leagueId]);
 
-  /* auto-join via invite link */
+  /* auto join invite link */
   useEffect(() => {
     if (
       leagueDetails?.members &&

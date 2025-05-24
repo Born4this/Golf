@@ -5,7 +5,6 @@
 /* 2. Import Inter font */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* 3. Global resets & defaults */
 html {
   font-family: 'Inter', sans-serif;
   background-color: transparent; /* remove slate-50 */
@@ -17,7 +16,6 @@ body {
   background-color: transparent;
 }
 
-/* 4. Default link styles */
 a {
   color: theme("colors.primary.600");
   text-decoration: none;

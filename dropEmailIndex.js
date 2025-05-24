@@ -1,4 +1,3 @@
-// backend/dropEmailIndex.js
 import mongoose from 'mongoose';
 
 async function dropIndex() {

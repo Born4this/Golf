@@ -5,7 +5,7 @@ module.exports = {
   ],
   theme: {
     extend: {
-      // Custom color palette
+      // Custom colors
       colors: {
         primary: {
           50: '#eef2ff',
@@ -31,11 +31,9 @@ module.exports = {
           900: '#7c2d12',
         },
       },
-      // Use Inter as primary font
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui'],
       },
-      // Smooth shadows for cards
       boxShadow: {
         card: '0 4px 12px rgba(0, 0, 0, 0.08)',
       },

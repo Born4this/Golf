@@ -1,4 +1,3 @@
-// backend/services/sportContentApiFree.js – simplified ESPN fetch (no params)
 import axios from 'axios'
 
 const LB_URL = 'https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard'
@@ -10,11 +9,7 @@ const cache = {
   tournamentId: null,
 }
 
-/**
- * Returns ESPN leaderboard JSON. We simply hit the generic leaderboard
- * endpoint (which always returns the most recent / current event) once,
- * then serve the result from memory for the next 3 h to keep traffic low.
- */
+
 export async function getLeaderboard () {
   const now = Date.now()
   if (cache.data && now - cache.fetchedAt < CACHE_TTL) {

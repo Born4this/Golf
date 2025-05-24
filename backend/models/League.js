@@ -1,4 +1,3 @@
-// backend/models/League.js
 import mongoose from 'mongoose';
 
 const DraftPickSchema = new mongoose.Schema({

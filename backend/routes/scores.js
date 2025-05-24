@@ -1,4 +1,3 @@
-// backend/routes/scores.js – ESPN style you preferred
 import express from 'express';
 import auth from '../middleware/auth.js';
 import axios from 'axios';
@@ -7,22 +6,20 @@ import Score from '../models/Score.js';
 
 const router = express.Router();
 
-// GET /api/scores/:leagueId
 router.get('/:leagueId', auth, async (req, res) => {
   try {
-    // 1) Load league (to check cutHandling mode)
+    // 1) Load league cut check
     const league = await League.findById(req.params.leagueId).lean();
     if (!league) return res.status(404).json({ msg: 'League not found' });
 
     const golferIds = league.draftPicks.map(p => p.golfer);
 
-    // 2) Fetch live leaderboard data from ESPN
     const { data } = await axios.get('https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard');
     const event      = data.events?.[0];
     const comps      = event?.competitions?.[0]?.competitors || [];
     const tournament = event?.tournament;
 
-    // Determine cut line if league is in "cap at cut" mode
+    // Determine cut line for cap at cut mode
     const rawCut = tournament?.cutScore;
     const cutActive =
       league.cutHandling === 'cap' &&
@@ -31,7 +28,7 @@ router.get('/:leagueId', auth, async (req, res) => {
       Boolean(tournament?.cutComplete);
     const cutScore = cutActive ? rawCut : null;
 
-    // 3) Build scores array, clamping at cutScore if needed
+    // 3) Scores
     const scores = golferIds.map(id => {
       const c = comps.find(cmp => cmp.athlete.id.toString() === id);
       const stat = c?.statistics?.find(s => s.name === 'scoreToPar');
@@ -42,7 +39,7 @@ router.get('/:leagueId', auth, async (req, res) => {
         toPar = parseInt(c.score.displayValue, 10);
       }
 
-      // Clamp at cut if applicable
+      //cut score
       let finalStrokes = toPar;
       if (cutScore != null && toPar != null && toPar > cutScore) {
         finalStrokes = cutScore;
@@ -51,7 +48,7 @@ router.get('/:leagueId', auth, async (req, res) => {
       return { golfer: id, strokes: finalStrokes };
     });
 
-    // 4) Upsert into Score collection
+    // 4) Up
     const bulk = scores.map(s => ({
       updateOne: {
         filter: { golfer: s.golfer },

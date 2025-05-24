@@ -5,10 +5,10 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // If you want everyone to land on /auth:
+    // Send everyone to /auth:
     router.replace('/auth');
 
-    // Or send logged in users straight to league selector:
+    // Or send logged in users to league selector
     // const token = typeof window !== 'undefined' && localStorage.getItem('token');
     // router.replace(token ? '/league-selector' : '/auth');
   }, [router]);

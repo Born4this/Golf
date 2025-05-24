@@ -1,4 +1,3 @@
-// src/pages/leaderboard.jsx
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/20/solid';
@@ -20,13 +19,12 @@ export default function Leaderboard() {
     Authorization: `Bearer ${token}`,
   };
 
-  // Refresh scores and leaderboard, cut logic
+  // Refresh and cut logic
   const refreshLeaderboard = async () => {
     if (!leagueId) return;
     setLoading(true);
     setError('');
     try {
-      // 1) Refresh scores (upsert strokes with cap logic)
       const resScores = await fetch(`/api/scores/${leagueId}`, { headers });
       if (!resScores.ok) throw new Error('Failed to refresh scores');
 
@@ -71,7 +69,7 @@ export default function Leaderboard() {
       }
     };
 
-    // Initial load and start polling
+    // load and start polling
     refreshLeaderboard();
     document.addEventListener('visibilitychange', handleVisibility);
     startPolling();
@@ -163,7 +161,6 @@ export default function Leaderboard() {
             </table>
           )}
 
-          {/* Back button */}
           <button
             onClick={() => router.push(`/team?leagueId=${leagueId}`)}
             className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md transition-colors"

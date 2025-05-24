@@ -68,7 +68,7 @@ export default function Auth() {
           />
         </div>
 
-        {/* Dynamic heading size: smaller for Login */}
+        
         <h2
           className={`font-semibold mb-4 text-center text-[#1E4151] ${
             isLogin ? 'text-sm' : 'text-sm'
@@ -127,7 +127,6 @@ export default function Auth() {
         </p>
       </div>
 
-      {/* Fixed badge at viewport bottom-right */}
       <div className="fixed bottom-4 right-4 z-50 bg-black bg-opacity-40 text-white text-xs font-medium px-3 py-1 rounded-lg shadow-md">
         Developed by Michael Morris
       </div>

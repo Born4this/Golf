@@ -1,4 +1,3 @@
-// src/pages/league-selector.jsx – now includes Demo (1‑Team) option
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
@@ -19,9 +18,7 @@ export default function LeagueSelector() {
     Authorization: `Bearer ${token}`,
   };
 
-  // -----------------------------------------------------------------------
-  // Helpers
-  // -----------------------------------------------------------------------
+  // Helpers 
   const fetchLeagues = async () => {
     setError('');
     try {
@@ -38,7 +35,7 @@ export default function LeagueSelector() {
     fetchLeagues();
   }, []);
 
-  // Create league ---------------------------------------------------------
+  // Create league 
   const handleCreate = async () => {
     setError('');
     setLoading(true);
@@ -63,7 +60,7 @@ export default function LeagueSelector() {
     }
   };
 
-  // Join league -----------------------------------------------------------
+  // Join league 
   const handleJoin = async e => {
     e.preventDefault();
     setError('');
@@ -84,7 +81,7 @@ export default function LeagueSelector() {
     }
   };
 
-  // Leave league ----------------------------------------------------------
+  // Leave league 
   const handleLeave = async id => {
     if (!confirm('Are you sure you want to leave this league?')) return;
     setError('');
@@ -101,9 +98,7 @@ export default function LeagueSelector() {
     }
   };
 
-  // -----------------------------------------------------------------------
-  // Render
-  // -----------------------------------------------------------------------
+  // Render 
   return (
     <Layout>
       <div className="max-w-md mx-auto mt-10 p-6 bg-white shadow-lg rounded-2xl">
@@ -165,7 +160,7 @@ export default function LeagueSelector() {
           </button>
         </div>
 
-        {/* JOIN LEAGUE */}
+        {/* Join */}
         <form onSubmit={handleJoin} className="flex space-x-2 mb-8">
           <input
             type="text"
@@ -183,7 +178,7 @@ export default function LeagueSelector() {
           </button>
         </form>
 
-        {/* MY LEAGUES */}
+        {/* user leagues */}
         <h2 className="text-xl font-semibold mb-4">My Leagues</h2>
         <ul className="space-y-4">
           {leagues.map(lg => (

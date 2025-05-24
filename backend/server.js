@@ -1,4 +1,3 @@
-// backend/server.js
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -22,20 +21,17 @@ import golferRoutes from './routes/golfers.js';
 const app = express();
 const PORT = process.env.PORT || 5025;
 
-// Trust proxy headers (e.g., X-Forwarded-For) for rate limiting
 app.set('trust proxy', 1);
 
-// Ensure FRONTEND_URL is set
 const FRONTEND_URL = process.env.FRONTEND_URL;
 if (!FRONTEND_URL) {
   console.error('❌ Server misconfiguration: FRONTEND_URL not set');
   process.exit(1);
 }
 
-// 1) Security headers
 app.use(helmet());
 
-// 2) CORS: only allow specified frontends
+// 2) CORS
 const allowedOrigins = [
   FRONTEND_URL,
   FRONTEND_URL.startsWith('https://')
@@ -55,11 +51,10 @@ app.use(
   })
 );
 
-// 3) Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 4) NoSQL injection sanitization (body & params only)
+// 4) NoSQL injection 
 const { sanitize } = mongoSanitize;
 app.use((req, res, next) => {
   if (req.body) req.body = sanitize(req.body);
@@ -75,10 +70,8 @@ const apiLimiter = rateLimit({
 });
 app.use('/api', apiLimiter);
 
-// 6) Prevent HTTP parameter pollution
 app.use(hpp());
 
-// Routes
 app.use('/api/scores', scoresRoutes);
 app.use('/api/leagues', draftRoutes);
 app.use('/api/leagues', teamRoutes);
@@ -87,10 +80,8 @@ app.use('/api/leagues', leaguesRoutes);
 app.use('/api/leagues', leaderboardRoutes);
 app.use('/api/golfers', golferRoutes);
 
-// Celebrate error handler (for Joi validations)
 app.use(celebrateErrors());
 
-// Connect to MongoDB and start server
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {

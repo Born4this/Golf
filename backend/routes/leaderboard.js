@@ -1,4 +1,3 @@
-// backend/routes/leaderboard.js
 import express from 'express';
 import authMiddleware from '../middleware/auth.js';
 import League from '../models/League.js';
@@ -6,9 +5,7 @@ import Score from '../models/Score.js';
 
 const router = express.Router({ mergeParams: true });
 
-// @route   GET /api/leagues/:id/leaderboard
-// @desc    Get league standings (team totals + individual picks)
-// @access  Private
+// GET /api/leagues/:id/leaderboard, Get league standings, Private
 router.get('/:id/leaderboard', authMiddleware, async (req, res) => {
   try {
     const league = await League.findById(req.params.id)
@@ -19,13 +16,12 @@ router.get('/:id/leaderboard', authMiddleware, async (req, res) => {
       return res.status(404).json({ msg: 'League not found' });
     }
 
-    // Map user IDs → usernames
+    // User IDs to usernames
     const userMap = league.members.reduce((map, u) => {
       map[u._id.toString()] = u.username;
       return map;
     }, {});
 
-    // Group each user’s picks (golfer is stored as string ID; golferName holds display name)
     const picksByUser = league.draftPicks.reduce((acc, pick) => {
       const uid = pick.user._id.toString();
       if (!acc[uid]) acc[uid] = [];
@@ -36,7 +32,6 @@ router.get('/:id/leaderboard', authMiddleware, async (req, res) => {
       return acc;
     }, {});
 
-    // Gather all drafted golfer IDs and fetch their scores
     const allGolferIds = league.draftPicks.map(p => p.golfer);
     const scoreDocs    = await Score.find({ golfer: { $in: allGolferIds } }).lean();
     const scoreMap     = scoreDocs.reduce((map, doc) => {
@@ -44,7 +39,6 @@ router.get('/:id/leaderboard', authMiddleware, async (req, res) => {
       return map;
     }, {});
 
-    // Build standings array including total and individual picks
     const standings = Object.entries(picksByUser).map(([uid, picks]) => {
       const totalStrokes = picks.reduce(
         (sum, p) => sum + (scoreMap[p.golferId] || 0),

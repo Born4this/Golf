@@ -7,7 +7,6 @@ import authMiddleware from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Helper to ensure secret is configured
 function getSecretOrError(res) {
   const secret = process.env.JWT_SECRET;
   console.log('🔐 [auth] process.env.JWT_SECRET =', secret);
@@ -18,9 +17,8 @@ function getSecretOrError(res) {
   return secret;
 }
 
-// @route   POST /api/auth/register
-// @desc    Register a new user
-// @access  Public
+// New user
+
 router.post('/register', async (req, res) => {
   console.log('⚡️ [auth] register endpoint hit');
   try {
@@ -29,18 +27,14 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ msg: 'Username and password required' });
     }
 
-    // Check for existing user
     let user = await User.findOne({ username });
     if (user) return res.status(400).json({ msg: 'User already exists' });
 
-    // Hash password
     const hash = await bcrypt.hash(password, await bcrypt.genSalt(10));
 
-    // Save user
     user = new User({ username, password: hash });
     await user.save();
 
-    // Grab secret _now_
     const secret = getSecretOrError(res);
     if (!secret) return; // error already sent
 
@@ -56,9 +50,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// @route   POST /api/auth/login
-// @desc    Authenticate user & get token
-// @access  Public
+// Authenticate user & get token
 router.post('/login', async (req, res) => {
   console.log('⚡️ [auth] login endpoint hit');
   try {
@@ -87,9 +79,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// @route   GET /api/auth/me
-// @desc    Get current user profile
-// @access  Private
+// Get current profile
 router.get('/me', authMiddleware, async (req, res) => {
   console.log('⚡️ [auth] me endpoint hit');
   try {
